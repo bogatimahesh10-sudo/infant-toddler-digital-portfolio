@@ -6,34 +6,35 @@
 <style>
 /* Layout: one phone-width app column (screens, sticky tab bar, bottom sheets); on wide screens a prototype guide sits beside it. */
 :root {
-  /* Brand tokens from the Pace spec */
-  --forest: #132820;
-  --sage: #6f9e7a;
-  --warm-white: #f5f5ef;
-  --amber-ink: #513c1d;
+  /* Brand tokens from the Pace project brief */
+  --forest: #174d3a;
+  --warm-white: #faf8f2;
+  --mint: #eaf3ed;
+  --charcoal: #202820;
   /* Derived roles */
   --bg: var(--warm-white);
   --surface: #ffffff;
-  --surface-2: #eeeee6;
-  --ink: var(--forest);
-  --muted: #56645b;
-  --line: #dddfd3;
+  --surface-2: #f1efe7;
+  --ink: var(--charcoal);
+  --muted: #59625c;
+  --line: #e3e1d7;
   --accent: var(--forest);
-  --accent-ink: #f5f5ef;
-  --sage-ink: #3d6a49;
-  --sage-soft: #e2ebe0;
+  --accent-ink: #faf8f2;
+  --sage: #3d8a67;
+  --sage-ink: var(--forest);
+  --sage-soft: var(--mint);
   --hero: var(--forest);
-  --hero-ink: #f5f5ef;
-  --caution-bg: #f4e7cb;
-  --caution-ink: var(--amber-ink);
+  --hero-ink: #faf8f2;
+  --caution-bg: #f6ead2;
+  --caution-ink: #5a4214;
   --caution-mark: #9a6a1c;
-  --error-bg: #f7dfd9;
+  --error-bg: #f8e2dd;
   --error-ink: #7a2216;
   --error-mark: #b23a28;
-  --info-bg: #e5eae4;
-  --sample-bg: #ebe4f5;
+  --info-bg: #eef1ec;
+  --sample-bg: #ece7f5;
   --sample-ink: #4b3880;
-  --shadow: 0 1px 2px rgba(19, 40, 32, .06), 0 4px 14px rgba(19, 40, 32, .06);
+  --shadow: 0 1px 2px rgba(32, 40, 32, .06), 0 4px 14px rgba(32, 40, 32, .06);
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --r-card: 16px;
   --r-ctl: 12px;
@@ -41,15 +42,15 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e1713; --surface: #16211b; --surface-2: #1d2b23; --ink: #eef0e8; --muted: #a2ada5; --line: #2a3830;
-    --accent: #9cc8a7; --accent-ink: #0e1713; --sage-ink: #9cc8a7; --sage-soft: #1f3327; --hero: #1d3a2c; --hero-ink: #f5f5ef;
+    --bg: #111814; --surface: #19221d; --surface-2: #202a24; --ink: #eef1ec; --muted: #a3ada6; --line: #2c3730;
+    --accent: #8fd0b0; --accent-ink: #0f1f18; --sage: #5fae8a; --sage-ink: #8fd0b0; --sage-soft: #1d3329; --hero: #174d3a; --hero-ink: #faf8f2;
     --caution-bg: #3a2d16; --caution-ink: #f0d6a2; --caution-mark: #e6b45c; --error-bg: #3d1e19; --error-ink: #f6c4ba; --error-mark: #f08c7e;
     --info-bg: #1f2a24; --sample-bg: #2a2340; --sample-ink: #cbbcf3; --shadow: 0 1px 2px rgba(0, 0, 0, .35); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0e1713; --surface: #16211b; --surface-2: #1d2b23; --ink: #eef0e8; --muted: #a2ada5; --line: #2a3830;
-  --accent: #9cc8a7; --accent-ink: #0e1713; --sage-ink: #9cc8a7; --sage-soft: #1f3327; --hero: #1d3a2c; --hero-ink: #f5f5ef;
+  --bg: #111814; --surface: #19221d; --surface-2: #202a24; --ink: #eef1ec; --muted: #a3ada6; --line: #2c3730;
+  --accent: #8fd0b0; --accent-ink: #0f1f18; --sage: #5fae8a; --sage-ink: #8fd0b0; --sage-soft: #1d3329; --hero: #174d3a; --hero-ink: #faf8f2;
   --caution-bg: #3a2d16; --caution-ink: #f0d6a2; --caution-mark: #e6b45c; --error-bg: #3d1e19; --error-ink: #f6c4ba; --error-mark: #f08c7e;
   --info-bg: #1f2a24; --sample-bg: #2a2340; --sample-ink: #cbbcf3; --shadow: 0 1px 2px rgba(0, 0, 0, .35); color-scheme: dark;
 }
@@ -148,13 +149,18 @@ button.row:hover .t { text-decoration: underline; }
 .hero-amt .c { font-size: .45em; letter-spacing: 0; opacity: .8; }
 .hero.shortfall .hero-amt { color: #ffb4a6; }
 .hero .meta { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: .875rem; opacity: .92; }
-.hero .chip { background: rgba(245, 245, 239, .16); color: inherit; }
-.hero .chip.warn { background: #f4e7cb; color: #513c1d; }
+.hero .chip { background: rgba(250, 248, 242, .16); color: inherit; }
+.hero .chip.warn { background: #f6ead2; color: #5a4214; }
 .hero .chip.bad { background: #ffb4a6; color: #3d120b; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
-.hero .btn.on-dark { background: rgba(245, 245, 239, .12); border-color: rgba(245, 245, 239, .28); color: inherit; }
+.hero .btn.on-dark { background: rgba(250, 248, 242, .12); border-color: rgba(250, 248, 242, .28); color: inherit; }
+.hero .seg { background: rgba(250, 248, 242, .12); }
+.hero .seg button { color: inherit; opacity: .85; }
+.hero .seg button[aria-pressed="true"] { background: var(--hero-ink); color: var(--hero); opacity: 1; box-shadow: none; }
+.hero .link { color: inherit; text-decoration: underline; }
+.hero .switch input:checked + span { background: #8fd0b0; }
 .countdown { display: flex; flex-direction: column; gap: 6px; }
-.countdown .track { height: 6px; border-radius: 3px; background: rgba(245, 245, 239, .18); overflow: hidden; }
+.countdown .track { height: 6px; border-radius: 3px; background: rgba(250, 248, 242, .18); overflow: hidden; }
 .countdown .track div { height: 100%; background: var(--sage); border-radius: 3px; }
 .countdown .labels { display: flex; justify-content: space-between; font-size: .75rem; opacity: .8; }
 
@@ -164,7 +170,7 @@ button.row:hover .t { text-decoration: underline; }
 .stat .l { font-size: .75rem; color: var(--muted); }
 
 /* Budget bars: completed (solid), pending (hatched), scheduled (outlined) */
-.bar { position: relative; display: flex; height: 10px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.bar { position: relative; display: flex; height: 10px; border-radius: 5px; background: var(--sage-soft); overflow: hidden; }
 .bar .done { background: var(--sage); }
 .bar .pend { background: repeating-linear-gradient(135deg, var(--sage) 0 3px, transparent 3px 6px); }
 .bar .sched { box-shadow: inset 0 0 0 1.5px var(--caution-mark); border-radius: 0 5px 5px 0; }
@@ -246,7 +252,7 @@ textarea.input { min-height: 140px; font-family: ui-monospace, "SF Mono", Menlo,
 .money-wrap .input { padding-left: 26px; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); }
 .check { display: flex; align-items: flex-start; gap: var(--s3); font-size: .9375rem; color: var(--ink); font-weight: 450; cursor: pointer; }
-.check input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--forest); flex: none; }
+.check input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
 .switch-row { display: flex; align-items: center; gap: var(--s3); padding-block: 10px; border-top: 1px solid var(--line); }
 .switch-row:first-child { border-top: 0; padding-top: 0; }
 .switch-row .grow { flex: 1; min-width: 0; }

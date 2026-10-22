@@ -262,7 +262,8 @@ test("sample data is internally consistent", () => {
   assert.equal(C.accountBalance(s, byId("a_cc")), 34000);
   assert.equal(C.accountBalance(s, byId("a_bnpl")), 18000);
   const st = C.safeToSpend(s, T);
-  assert.equal(st.S, st.A - st.B - st.G - st.R);
+  assert.equal(st.S, st.A + (st.includeExpected ? st.E : 0) - st.B - st.G - st.O - st.R);
+  assert.equal(st.O, 4000, "sample includes one set-aside");
   assert.ok(st.S > 0);
   assert.ok(C.forecast(s, T).firstNegative, "sample data demonstrates Flow D");
   assert.ok(s.transactions.every((t) => C.validateTransaction(t, s).length === 0));
@@ -280,4 +281,105 @@ test("mock provider follows the adapter contract", async () => {
   assert.ok(first.transactions.some((t) => t.status === "pending"));
   p.failNextSync();
   await assert.rejects(p.fetchTransactions(consent.consent_reference, 1), { code: "sync_failed" });
+});
+
+// ---- Project brief, section 3 ----
+
+test("brief example: $900 cash, $400 expected, $250 bills, $100 savings, $50 reserved", () => {
+  const r = C.safeToSpendFormula({ cash: 90000, expected: 40000, bills: 25000, savings: 10000, reserved: 5000, buffer: 0, includeExpected: true });
+  assert.equal(r.total, 90000);
+  assert.equal(r.conservative, 50000);
+  assert.equal(C.safeToSpendFormula({ cash: 90000, expected: 40000, bills: 25000, savings: 10000, reserved: 5000, buffer: 0, includeExpected: false }).total, 50000);
+});
+
+test("brief example through the full rule: recorded spending isn't subtracted twice", () => {
+  // $1,000 opening balance with a $100 purchase already recorded = $900 available cash.
+  const s = base({
+    settings: { buffer: 0, period: "fortnightly", sts_window: "period", sts_include_expected: true },
+    transactions: [{ id: "spent", type: "expense", amount: 10000, account_id: "a1", category_id: "c_food", date: "2026-10-20", status: "posted" }],
+    reservations: [{ id: "r", name: "Owe a friend", amount: 5000 }],
+    goals: [{ id: "g", name: "Saver", target: 999999, account_id: "a2", plan: { amount: 10000, frequency: "once", next_date: "2026-10-24", from_account_id: "a1" } }],
+  });
+  s.accounts[0].opening_balance = 100000;
+  s.recurring[0].amount = 40000; // pay on 28 Oct, inside the fortnight ending 28 Oct? see below
+  s.recurring[1].amount = 25000; // rent once in the window
+  s.recurring[1].frequency = "once";
+  // The fortnight anchored to payday runs 14–27 Oct, so pay on the 28th is outside it.
+  // Use a monthly period so the expected pay falls inside the window.
+  s.settings.period = "monthly";
+  const st = C.safeToSpend(s, T);
+  assert.equal(st.A, 90000);
+  assert.equal(st.E, 40000);
+  assert.equal(st.B, 25000);
+  assert.equal(st.G, 10000);
+  assert.equal(st.O, 5000);
+  assert.equal(st.S, 90000);
+  assert.equal(st.conservative, 50000);
+  assert.equal(C.safeToSpend(s, T, { includeExpected: false }).S, 50000);
+});
+
+test("expected income is excluded unless the user opts in", () => {
+  const s = base({ settings: { buffer: 0, period: "monthly", sts_window: "period" } });
+  const st = C.safeToSpend(s, T);
+  assert.equal(st.E, 90000);
+  assert.equal(st.includeExpected, false);
+  assert.equal(st.S, st.conservative);
+});
+
+test("the payday window never counts expected income", () => {
+  const s = base();
+  const st = C.safeToSpend(s, T, { window: "payday", includeExpected: true });
+  assert.equal(st.E, 0);
+  assert.equal(st.end, "2026-10-28");
+});
+
+test("period boundaries: weekly, fortnightly (pay-anchored) and monthly", () => {
+  assert.deepEqual(C.periodRange("weekly", T), { period: "weekly", start: "2026-10-19", end: "2026-10-26", days: 7 });
+  assert.deepEqual(C.periodRange("fortnightly", T, "2026-10-28"), { period: "fortnightly", start: "2026-10-14", end: "2026-10-28", days: 14 });
+  assert.deepEqual(C.periodRange("fortnightly", "2026-10-28", "2026-10-28"), { period: "fortnightly", start: "2026-10-28", end: "2026-11-11", days: 14 });
+  assert.deepEqual(C.periodRange("monthly", "2026-02-10"), { period: "monthly", start: "2026-02-01", end: "2026-03-01", days: 28 });
+  // A bill due on the period's last day is in; one due the day after is out.
+  const s = base({ settings: { buffer: 0, period: "weekly", sts_window: "period" } });
+  s.recurring[1] = { ...s.recurring[1], frequency: "once", start_date: "2026-10-25" };
+  assert.equal(C.safeToSpend(s, T).B, 20000);
+  s.recurring[1].start_date = "2026-10-26";
+  assert.equal(C.safeToSpend(s, T).B, 0);
+});
+
+test("pay already received isn't expected again", () => {
+  const s = base({ settings: { buffer: 0, period: "monthly", sts_window: "period" } });
+  s.transactions.push({ id: "p", type: "income", amount: 90000, account_id: "a1", category_id: "c_pay", date: "2026-10-28", status: "posted", income_rule_id: "pay" });
+  const st = C.safeToSpend(s, T);
+  assert.equal(st.expectedItems.length, 0);
+});
+
+test("refunds reduce category spending and aren't counted as income", () => {
+  const s = base({ transactions: [
+    { id: "buy", type: "expense", amount: 8000, account_id: "a1", category_id: "c_food", date: "2026-10-15", status: "posted" },
+    { id: "ref", type: "income", refund: true, amount: 3000, account_id: "a1", category_id: "c_food", date: "2026-10-18", status: "posted" },
+  ] });
+  const bs = C.budgetSummary(s, "fortnightly", T);
+  assert.equal(bs.rows.find((r) => r.category.id === "c_food").completed, 5000);
+  assert.equal(bs.income, 0);
+  assert.equal(bs.expenses, 5000);
+  assert.equal(C.spendingByCategory(s, "2026-10-01", "2026-11-01")[0].total, 5000);
+  const m = C.monthlyTotals(s, T, 1)[0];
+  assert.equal(m.income, 0);
+  assert.equal(m.expenses, 5000);
+  assert.equal(C.accountBalance(s, s.accounts[0]), 50000 - 8000 + 3000);
+});
+
+test("marking a bill paid moves it out of B and into the balance once", () => {
+  let s = base();
+  const before = C.safeToSpend(s, T);
+  s = C.upsertTransaction(s, { id: "pay-rent", type: "expense", amount: 20000, account_id: "a1", category_id: "c_rent", merchant: "Rent", date: T, bill_occurrence_id: "rent@2026-10-23" }, "now");
+  const after = C.safeToSpend(s, T);
+  assert.equal(after.B, before.B - 20000);
+  assert.equal(after.A, before.A - 20000);
+  assert.equal(after.S, before.S);
+});
+
+test("recurring spending converts to a monthly amount", () => {
+  const r = C.recurringSpending(base());
+  assert.equal(r.items[0].monthly, Math.round((20000 * 52) / 12));
 });

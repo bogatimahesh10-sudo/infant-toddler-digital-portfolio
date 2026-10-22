@@ -108,6 +108,9 @@
   const isCountable = (t) => !t.deleted_at && t.status !== "reversed" && t.status !== "excluded";
   const isPosted = (t) => isCountable(t) && t.status === "posted";
   const isPending = (t) => isCountable(t) && t.status === "pending";
+  // A refund is money back for an earlier purchase. It's stored as income on the account,
+  // but reduces spending in its expense category instead of counting as income.
+  const isRefund = (t) => t.type === "income" && !!t.refund;
 
   // Signed effect of a transaction on one account's cash position.
   function txEffect(t, accountId) {
@@ -284,16 +287,37 @@
   }
 
   // ---------- Safe to Spend (the single shared rule) ----------
-  // S = A − B − G − R
+  // Ledger model: an account's balance already includes every posted transaction, so spending
+  // that has happened is never subtracted again. Pending outflows are not in the posted balance
+  // yet, so they are subtracted once.
+  //
+  //   S = A + E − B − G − O − R
   //   A: available cash (posted balances of accounts marked as available cash, less pending outflows)
-  //   B: unpaid bills due before the next payday (overdue ones included, paid/skipped/paused/cancelled excluded)
-  //   G: scheduled contributions to reserved goal accounts, paid from available cash, before payday
+  //   E: expected income within the window (only for the "budget period" window, and only if included)
+  //   B: unpaid bills due within the window (overdue ones included; paid/skipped/paused/cancelled excluded)
+  //   G: scheduled transfers to reserved goal accounts, paid from available cash, within the window
+  //   O: other reserved commitments the user has set aside
   //   R: the user's safety buffer
-  function safeToSpend(state, today) {
+  //
+  // The window is "payday" (today until the next expected pay, the default, which never relies on
+  // expected income), "week" (the next seven days) or "period" (until the end of the budget period).
+  // The two longer windows can include expected income, which is labelled and can be switched off.
+  function safeToSpendFormula(i) {
+    const committed = i.bills + i.savings + i.reserved + (i.buffer || 0);
+    const conservative = i.cash - committed;
+    return { total: conservative + (i.includeExpected ? i.expected : 0), conservative };
+  }
+
+  function safeToSpend(state, today, opts) {
+    opts = opts || {};
+    const settings = state.settings || {};
+    const windowKind = opts.window || settings.sts_window || "payday";
+    const includeExpected = opts.includeExpected != null ? opts.includeExpected : settings.sts_include_expected === true;
     const pay = nextPayday(state, today);
-    const fallbackEnd = periodRange("monthly", today).end;
-    const payDate = pay ? pay.date : fallbackEnd;
-    const days = Math.max(1, daysBetween(today, payDate));
+    const payDate = pay ? pay.date : periodRange("monthly", today).end;
+    const range = periodRange(settings.period || "fortnightly", today, pay ? pay.date : null);
+    const end = windowKind === "period" ? range.end : windowKind === "week" ? addDays(today, 7) : payDate;
+    const days = Math.max(1, daysBetween(today, end));
     const included = [], excluded = [];
     for (const a of state.accounts) {
       if (a.status === "closed") continue;
@@ -305,20 +329,37 @@
     const pending = included.reduce((s, x) => s + x.pending, 0);
     const pendingItems = state.transactions.filter((t) => isPending(t) && cashIds.has(t.account_id) && (t.type === "expense" || t.type === "transfer"));
     const A = postedCash - pending;
-    const bills = billOccurrences(state, addDays(today, -14), payDate, today)
+    const expectedItems = windowKind !== "payday"
+      ? incomeOccurrences(state, today, end).filter((o) => !o.received && (!o.rule.account_id || cashIds.has(o.rule.account_id)))
+      : [];
+    const E = expectedItems.reduce((s, o) => s + o.amount, 0);
+    const bills = billOccurrences(state, addDays(today, -14), end, today)
       .filter((o) => UNPAID.includes(o.status) && (!o.rule.account_id || cashIds.has(o.rule.account_id)));
     const B = bills.reduce((s, o) => s + o.amount, 0);
-    const goals = goalContributionsDue(state, today, payDate)
+    const goals = goalContributionsDue(state, today, end)
       .filter((c) => c.reserved && cashIds.has(c.from_account_id) && !cashIds.has(c.goal.account_id));
     const G = goals.reduce((s, c) => s + c.amount, 0);
-    const R = state.settings.buffer;
-    const S = A - B - G - R;
+    const reservedItems = (state.reservations || []).filter((r) => !r.released_at);
+    const O = reservedItems.reduce((s, r) => s + r.amount, 0);
+    const R = settings.buffer || 0;
+    const f = safeToSpendFormula({ cash: A, expected: E, bills: B, savings: G, reserved: O, buffer: R, includeExpected });
+    const S = f.total;
     const perDay = S > 0 ? Math.floor(S / days) : 0;
     return {
-      today, payday: payDate, payIncome: pay, noIncome: !pay, estimated: !!(pay && pay.estimated), days,
-      A, postedCash, pending, pendingItems, included, excluded, bills, B, goals, G, R, S, perDay,
-      status: S < 0 ? "shortfall" : perDay < (state.settings.tight_per_day || 1500) ? "tight" : "ok",
+      today, window: windowKind, end, range, payday: payDate, payIncome: pay, noIncome: !pay, estimated: !!(pay && pay.estimated), days,
+      A, postedCash, pending, pendingItems, included, excluded, E, expectedItems, includeExpected,
+      bills, B, goals, G, reservedItems, O, R, S, conservative: f.conservative, perDay,
+      status: S < 0 ? "shortfall" : perDay < (settings.tight_per_day || 1500) ? "tight" : "ok",
     };
+  }
+
+  // Recurring bills as a monthly equivalent, for the Insights summary.
+  function recurringSpending(state) {
+    const perYear = { weekly: 52, fortnightly: 26, monthly: 12, quarterly: 4, yearly: 1 };
+    const items = state.recurring.filter((r) => r.kind === "bill" && r.status === "active" && perYear[r.frequency])
+      .map((r) => ({ rule: r, monthly: Math.round((r.amount * perYear[r.frequency]) / 12) }))
+      .sort((a, b) => b.monthly - a.monthly);
+    return { items, total: items.reduce((s, x) => s + x.monthly, 0) };
   }
 
   // ---------- forecast ----------
@@ -341,7 +382,7 @@
   function forecast(state, today, horizon) {
     horizon = horizon || 42;
     const end = addDays(today, horizon);
-    const sts = safeToSpend(state, today);
+    const sts = safeToSpend(state, today, { window: "payday" });
     const cashIds = new Set(sts.included.map((x) => x.account.id));
     const daily = discretionaryPerDay(state, today);
     const events = {};
@@ -421,7 +462,8 @@
     const rows = [];
     for (const c of state.categories.filter((x) => x.type === "expense" && !x.archived_at).sort((a, b) => a.order - b.order)) {
       const mine = state.transactions.filter((t) => isCountable(t) && spendTx(t) && t.category_id === c.id);
-      const completed = mine.filter((t) => t.status === "posted" && inRange(t, range)).reduce((s, t) => s + t.amount, 0);
+      const refunds = state.transactions.filter((t) => isPosted(t) && isRefund(t) && t.category_id === c.id && inRange(t, range)).reduce((s, t) => s + t.amount, 0);
+      const completed = Math.max(0, mine.filter((t) => t.status === "posted" && inRange(t, range)).reduce((s, t) => s + t.amount, 0) - refunds);
       const pending = mine.filter((t) => t.status === "pending" && inRange(t, range)).reduce((s, t) => s + t.amount, 0);
       const scheduledItems = bills.filter((b) => b.rule.category_id === c.id);
       const scheduled = scheduledItems.reduce((s, b) => s + b.amount, 0);
@@ -434,9 +476,10 @@
       const status = available === 0 && used === 0 ? "none" : spent > available ? "over" : used > available ? "at-risk" : available > 0 && used >= available * 0.9 ? "close" : "ok";
       rows.push({ category: c, planned, rolled, available, completed, pending, scheduled, scheduledItems, spent, used, remaining: available - used, status });
     }
-    const income = state.transactions.filter((t) => isPosted(t) && t.type === "income" && inRange(t, range)).reduce((s, t) => s + t.amount, 0);
+    const income = state.transactions.filter((t) => isPosted(t) && t.type === "income" && !isRefund(t) && inRange(t, range)).reduce((s, t) => s + t.amount, 0);
+    const refunded = state.transactions.filter((t) => isPosted(t) && isRefund(t) && inRange(t, range)).reduce((s, t) => s + t.amount, 0);
     const expectedIncome = incomeOccurrences(state, range.start, range.end).filter((o) => !o.received).reduce((s, o) => s + o.amount, 0);
-    const expenses = state.transactions.filter((t) => isCountable(t) && t.type === "expense" && inRange(t, range)).reduce((s, t) => s + t.amount, 0);
+    const expenses = state.transactions.filter((t) => isCountable(t) && t.type === "expense" && inRange(t, range)).reduce((s, t) => s + t.amount, 0) - refunded;
     const planned = rows.reduce((s, r) => s + r.planned, 0);
     const savingsPlanned = state.goals.filter((g) => g.plan && !g.plan.paused && !g.archived_at)
       .reduce((s, g) => s + Math.round(perDayRate(g.plan.amount, g.plan.frequency) * range.days), 0);
@@ -545,8 +588,8 @@
     for (let i = 0; i < months; i++) {
       const end = addMonths(start, 1);
       const txs = state.transactions.filter((t) => isPosted(t) && t.date >= start && t.date < end && t.date <= today);
-      const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-      const expenses = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+      const income = txs.filter((t) => t.type === "income" && !isRefund(t)).reduce((s, t) => s + t.amount, 0);
+      const expenses = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0) - txs.filter(isRefund).reduce((s, t) => s + t.amount, 0);
       out.push({ month: start.slice(0, 7), start, end: minDate(end, addDays(today, 1)), income, expenses, net: income - expenses, savingsRate: income > 0 ? (income - expenses) / income : null, partial: end > today, txIds: txs.map((t) => t.id) });
       start = end;
     }
@@ -555,12 +598,12 @@
   function spendingByCategory(state, from, to) {
     const map = {};
     for (const t of state.transactions) {
-      if (!isPosted(t) || t.type !== "expense" || t.date < from || t.date >= to) continue;
+      if (!isPosted(t) || (t.type !== "expense" && !isRefund(t)) || t.date < from || t.date >= to) continue;
       const m = (map[t.category_id] = map[t.category_id] || { category_id: t.category_id, total: 0, txIds: [] });
-      m.total += t.amount;
+      m.total += isRefund(t) ? -t.amount : t.amount;
       m.txIds.push(t.id);
     }
-    return Object.values(map).sort((a, b) => b.total - a.total);
+    return Object.values(map).filter((m) => m.total > 0).sort((a, b) => b.total - a.total);
   }
   // Month-to-date compared with the same number of days last month, so partial months compare fairly.
   function monthOverMonth(state, today) {
@@ -615,8 +658,8 @@
     const withGoal = { ...state, goals: [...state.goals.filter((g) => g.id !== goal.id), goal] };
     const before = forecast(state, today);
     const after = forecast(withGoal, today);
-    const sBefore = safeToSpend(state, today).S, sAfter = safeToSpend(withGoal, today).S;
-    if (sAfter < 0 && sAfter < sBefore) return { kind: "payday", amount: -sAfter, date: safeToSpend(withGoal, today).payday };
+    const sBefore = safeToSpend(state, today, { window: "payday" }).S, sAfter = safeToSpend(withGoal, today, { window: "payday" }).S;
+    if (sAfter < 0 && sAfter < sBefore) return { kind: "payday", amount: -sAfter, date: safeToSpend(withGoal, today, { window: "payday" }).payday };
     if (after.firstNegative && !before.firstNegative) return { kind: "forecast", amount: -after.low.balance, date: after.firstNegative.date };
     if (after.firstNegative && after.low.balance < before.low.balance) return { kind: "worsens", amount: before.low.balance - after.low.balance, date: before.firstNegative.date };
     return null;
@@ -627,13 +670,13 @@
     iso, parseDate, addDays, addMonths, daysBetween, startOfWeek, startOfMonth, occurrences, stepDate, FREQUENCIES,
     parseMoney, formatMoney, PERIODS, periodRange, previousRange,
     // accounts & transactions
-    CASH_TYPES, canBeAvailableCash, isLiability, isCountable, isPosted, isPending, accountBalance, pendingOutflow,
+    CASH_TYPES, canBeAvailableCash, isLiability, isCountable, isPosted, isPending, isRefund, accountBalance, pendingOutflow,
     validateTransaction, findPossibleDuplicates, upsertTransaction, softDeleteTransaction, restoreTransaction, recategorize,
     // bills, income, goals
     occurrenceId, billOccurrences, autoMatchBills, incomeOccurrences, nextPayday,
     goalSaved, goalContributionsDue, goalProjection, contributionConflict,
     // safe to spend & forecast
-    safeToSpend, forecast, discretionaryPerDay, shortfallOptions, reduceFlexibleAllocations,
+    safeToSpend, safeToSpendFormula, recurringSpending, forecast, discretionaryPerDay, shortfallOptions, reduceFlexibleAllocations,
     // budgets
     budgetSummary, transferAllocation, setAllocation, scaleAllocation,
     // bank

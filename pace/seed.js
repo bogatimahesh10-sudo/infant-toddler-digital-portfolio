@@ -55,6 +55,7 @@
   function baseSettings() {
     return {
       buffer: 10000, period: "fortnightly", rollover: true, hide_balances: false, tight_per_day: 1500,
+      sts_window: "payday", sts_include_expected: false,
       notifications: { bills: true, shortfall: true, weekly_summary: false },
       app_lock: false, offline: false,
     };
@@ -153,6 +154,8 @@
       if (r() < 0.03) { const [m, lo, hi] = pick(shops.c_health); tx({ type: "expense", amount: between(lo, hi), date: d, category_id: "c_health", merchant: m }); }
       if (r() < 0.03) { const [m, lo, hi] = pick(shops.c_other); tx({ type: "expense", amount: between(lo, hi), date: d, category_id: "c_other", merchant: m }); }
     }
+    // A refund reduces Shopping instead of counting as income.
+    tx({ type: "income", refund: true, amount: 2999, date: C.addDays(T, -4), category_id: "c_shopping", merchant: "Uniqlo refund", note: "Returned jacket", source: "manual" });
     // A recent manual entry that the demo bank will later import again (duplicate detection).
     tx({ type: "expense", amount: 6420, date: C.addDays(T, -2), category_id: "c_groceries", merchant: "Woolworths", note: "Weekly shop", source: "manual" });
     // Monthly credit card repayment from Everyday.
@@ -167,6 +170,7 @@
       accounts, categories: baseCategories(), recurring, goals, contributions, transactions,
       allocations: allocationsFromFortnightly({ c_rent: 37000, c_groceries: 12000, c_transport: 7000, c_eating: 5000, c_utilities: 4500, c_phone: 3500, c_debt: 4500, c_edu: 2000, c_health: 3000, c_subs: 700, c_shopping: 3000, c_fun: 3000, c_other: 1000 }),
       bill_status: {}, category_rules: {}, connections: [], dismissed: {},
+      reservations: [{ id: "res_1", name: "Paying Sam back for concert ticket", amount: 4000, created_at: C.addDays(T, -2) }],
     };
 
     // Set opening balances so today's balances land on round, believable figures.
@@ -204,7 +208,7 @@
       user: { id: "u_local", name: a.name || "", email: a.email || "", country: "AU", currency: a.currency, locale: "en-AU", timezone: "Australia/Melbourne" },
       settings, accounts, categories: baseCategories(), recurring, goals, contributions: [], transactions: [],
       allocations: { weekly: {}, fortnightly: {}, monthly: {} },
-      bill_status: {}, category_rules: {}, connections: [], dismissed: {},
+      bill_status: {}, category_rules: {}, connections: [], dismissed: {}, reservations: [],
     };
     let s = state;
     for (const [cat, cents] of Object.entries(a.allocations || {})) s = C.setAllocation(s, a.payFrequency, cat, cents);

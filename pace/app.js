@@ -15,7 +15,11 @@
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) { const s = JSON.parse(raw); if (s && s.schema === 3) return s; if (s && s.deleted) return null; }
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s && s.schema === 3) { s.reservations = s.reservations || []; return s; }
+        if (s && s.deleted) return null;
+      }
     } catch (e) { /* storage unavailable: fall back to sample data */ }
     return Seed.sample(today());
   }
@@ -265,33 +269,38 @@
   // ===== 01 Home =====
   function renderHome() {
     const T = today();
-    const st = C.safeToSpend(S, T);
+    const period = S.settings.period;
+    const windows = stsWindows(T);
+    const st = C.safeToSpend(S, T, { window: windows.current });
     const fc = C.forecast(S, T);
     const sf = C.shortfallOptions(S, T);
-    const period = S.settings.period;
     const bs = C.budgetSummary(S, period, T);
     const out = [];
 
     if (S.sample && !S.dismissed.sample) {
-      out.push(notice("sample", "You're looking at sample data", "Mia is a made-up student. Every account, bill and transaction here is simulated, and no real bank is connected.",
+      out.push(notice("sample", "You're looking at sample data", "Mia is a made-up student. Every account, bill and transaction here is simulated, no real bank is connected, and changes are saved only on this device.",
         `<button class="btn small" data-act="start-onboarding">Set up my own</button><button class="btn small ghost" data-act="dismiss" data-key="sample">Hide this</button>`));
     }
     out.push(`<div class="card-head"><h1 style="font-size:1.25rem">${S.user.name ? "Hi " + esc(S.user.name) : "Your money"}</h1></div>`);
-    out.push(seg("set-period", period, [["weekly", "Week"], ["fortnightly", "Fortnight"], ["monthly", "Month"]], "Budget period"));
+    out.push(`<div class="field"><span class="eyebrow">Budget period</span>${seg("set-period", period, [["weekly", "Week"], ["fortnightly", "Fortnight"], ["monthly", "Month"]], "Budget period")}</div>`);
 
     // Safe to Spend hero
     const pay = S.recurring.find((r) => r.kind === "income" && r.status === "active");
     const cycle = pay ? ({ weekly: 7, fortnightly: 14, monthly: 30 }[pay.frequency] || 14) : 30;
-    const elapsed = Math.max(0, Math.min(1, 1 - st.days / cycle));
+    const payDays = Math.max(0, C.daysBetween(T, st.payday));
+    const elapsed = Math.max(0, Math.min(1, 1 - payDays / cycle));
+    const windowLabel = { payday: "payday", week: "the next 7 days", period: `the end of this ${WORD[period]}` }[st.window];
     const statusChip = st.status === "shortfall" ? `<span class="chip bad">Shortfall</span>` : st.status === "tight" ? `<span class="chip warn">Tight</span>` : `<span class="chip">On track</span>`;
     out.push(`<section class="card hero ${st.status}" aria-labelledby="sts-label">
-      <div class="card-head"><span class="eyebrow" id="sts-label">${st.S < 0 ? "Shortfall before payday" : "Safe to Spend"}</span>${statusChip}</div>
+      <div class="card-head"><span class="eyebrow" id="sts-label">${st.S < 0 ? "Shortfall" : "Safe to Spend"} · ${st.window === "week" ? "" : "until "}${windowLabel}</span>${statusChip}</div>
       <div class="hero-amt">${amountSplit(st.S)}</div>
-      <div class="meta"><span>${st.S > 0 ? `${money(st.perDay)} a day` : "Nothing safe to spend yet"}</span><span>Until ${st.noIncome ? "the end of the month" : fmt(st.payday)}</span></div>
-      ${st.S < 0 ? `<p class="small">Your bills, savings and buffer before payday are ${money(-st.S)} more than your available cash. Pace shows the shortfall instead of $0 so you can fix it.</p>` : ""}
+      <div class="meta"><span>${st.S > 0 ? `${money(st.perDay)} a day for ${st.days} day${st.days === 1 ? "" : "s"}` : "Nothing safe to spend yet"}</span><span>Until ${st.window === "payday" && st.noIncome ? "the end of the month" : fmt(st.end)}</span></div>
+      ${st.S < 0 ? `<p class="small">Your bills, savings, set-asides and buffer ${st.window === "payday" ? "before payday" : "in this window"} are ${money(-st.S)} more than you have${st.window !== "payday" && st.includeExpected ? ", including expected pay" : ""}. Pace shows the shortfall instead of $0 so you can fix it.</p>` : ""}
+      ${seg("sts-window", st.window, windows.options, "Time window for Safe to Spend")}
+      ${st.window !== "payday" ? `<div class="switch-row" style="border:0;padding:0"><div class="grow small">${st.expectedItems.length ? `Count ${money(st.E)} expected pay${st.estimated ? " (estimate)" : ""}` : "No pay expected in this window"}${st.includeExpected && st.E ? `<div class="tiny" style="opacity:.8">Without it: ${money(st.conservative)}</div>` : ""}</div>${st.expectedItems.length ? switchCtl("sts-expected", st.includeExpected, "sts-expected", "", "Count expected pay") : ""}</div>` : ""}
       <div class="countdown" aria-label="Payday countdown">
         <div class="track"><div style="width:${Math.round(elapsed * 100)}%"></div></div>
-        <div class="labels"><span>${st.noIncome ? "No payday set" : `Payday in ${st.days} day${st.days === 1 ? "" : "s"}${st.estimated ? " (estimated)" : ""}`}</span><span>${st.payIncome ? `${money(st.payIncome.amount)}${st.estimated ? " expected" : ""}` : ""}</span></div>
+        <div class="labels"><span>${st.noIncome ? "No payday set" : `Payday in ${payDays} day${payDays === 1 ? "" : "s"}${st.estimated ? " (estimated)" : ""}`}</span><span>${st.payIncome ? `${money(st.payIncome.amount)}${st.estimated ? " expected" : ""} · <button class="link" data-act="income-edit" data-id="${st.payIncome.rule.id}">Edit pay</button>` : `<button class="link" data-act="income-edit">Add pay</button>`}</span></div>
       </div>
       ${st.estimated ? `<p class="tiny" style="opacity:.8">Your pay changes, so the payday amount is an estimate.</p>` : ""}
       <p class="tiny" style="opacity:.8">An estimate from the information in Pace, not a guarantee of money you can withdraw.</p>
@@ -324,7 +333,7 @@
 
     // Breakdown: the user can challenge each part
     out.push(`<section class="card" aria-labelledby="bd-h">
-      <div class="card-head"><h2 id="bd-h">How it's worked out</h2><span class="chip">Until ${dShort(st.payday)}</span></div>
+      <div class="card-head"><h2 id="bd-h">How it's worked out</h2><span class="chip">${dShort(T)} – ${dShort(C.addDays(st.end, -1))}</span></div>
       <div>
         <details><summary class="bd-line">${ico("chev", "s chev")}<span class="grow">Available cash</span><span class="amt">${money(st.A)}</span></summary>
           <div class="detail-body">
@@ -332,22 +341,36 @@
             ${st.pending ? `<div class="mini"><span>Pending, not yet in your balance (${st.pendingItems.length})</span><span class="amt">−${money(st.pending)}</span></div>` : ""}
             ${st.excluded.length ? `<p class="tiny muted" style="padding-top:6px">Not counted: ${st.excluded.map((x) => `${esc(x.account.name)} (${x.reason.toLowerCase()})`).join(", ")}.</p>` : ""}
           </div></details>
-        <details><summary class="bd-line">${ico("chev", "s chev")}<span class="grow">Bills before payday (${st.bills.length})</span><span class="amt">−${money(st.B)}</span></summary>
+        ${st.window !== "payday" ? `<details><summary class="bd-line">${ico("chev", "s chev")}<span class="grow">Expected pay (${st.expectedItems.length})${st.includeExpected ? "" : " · not counted"}</span><span class="amt">${st.includeExpected ? "+" + money(st.E) : money(0)}</span></summary>
+          <div class="detail-body">${st.expectedItems.map((o) => `<button class="mini" data-act="income-edit" data-id="${o.rule.id}"><span>${esc(o.rule.name)} · ${relDay(o.date)}${o.estimated ? " · estimate" : ""}</span><span class="amt">${money(o.amount)}</span></button>`).join("") || `<p class="tiny muted">No pay expected in this window.</p>`}
+          <p class="tiny muted">Expected pay hasn't arrived yet. Turn it off in the card above for a conservative figure.</p></div></details>` : ""}
+        <details><summary class="bd-line">${ico("chev", "s chev")}<span class="grow">Bills ${st.window === "payday" ? "before payday" : "in this window"} (${st.bills.length})</span><span class="amt">−${money(st.B)}</span></summary>
           <div class="detail-body">${st.bills.map((o) => `<button class="mini" data-act="edit-occ" data-id="${o.id}"><span>${esc(o.rule.name)} · ${relDay(o.date)}${o.status === "overdue" ? " · overdue" : ""}</span><span class="amt">${money(o.amount)}</span></button>`).join("") || `<p class="tiny muted">Nothing due before payday.</p>`}
           <p class="tiny muted">Paid, skipped and cancelled bills aren't counted. A bill already matched to a bank payment is only deducted once.</p></div></details>
         <details><summary class="bd-line">${ico("chev", "s chev")}<span class="grow">Savings commitments (${st.goals.length})</span><span class="amt">−${money(st.G)}</span></summary>
           <div class="detail-body">${st.goals.map((c) => `<button class="mini" data-act="goal-edit" data-id="${c.goal.id}"><span>${esc(c.goal.name)} · ${relDay(c.date)}</span><span class="amt">${money(c.amount)}</span></button>`).join("") || `<p class="tiny muted">No transfers to savings before payday.</p>`}
           <p class="tiny muted">Virtual goals don't move money, so they aren't deducted.</p></div></details>
+        <details><summary class="bd-line">${ico("chev", "s chev")}<span class="grow">Other set-asides (${st.reservedItems.length})</span><span class="amt">−${money(st.O)}</span></summary>
+          <div class="detail-body">${st.reservedItems.map((r) => `<button class="mini" data-act="res-edit" data-id="${r.id}"><span>${esc(r.name)}</span><span class="amt">${money(r.amount)}</span></button>`).join("") || `<p class="tiny muted">Nothing set aside.</p>`}
+          <button class="link" data-act="res-edit">${ico("plus", "s")}Set money aside</button>
+          <p class="tiny muted">For money you've promised elsewhere, like paying a friend back.</p></div></details>
         <div class="bd-line"><span style="width:16px"></span><span class="grow">Safety buffer</span><button class="link" data-act="edit-buffer">Change</button><span class="amt">−${money(st.R)}</span></div>
         <div class="bd-line" style="border-top:2px solid var(--ink)"><span style="width:16px"></span><span class="grow">${st.S < 0 ? "Shortfall" : "Safe to Spend"}</span><span class="amt">${money(st.S)}</span></div>
       </div>
-      <p class="tiny muted">Tap a bill, a goal or the buffer to change it. Safe to Spend updates straight away.</p>
+      <p class="tiny muted">Spending you've already recorded is in your balance, so it isn't subtracted again. Tap a bill, goal, set-aside or the buffer to change it. Safe to Spend updates straight away.</p>
     </section>`);
 
     // Cash and freshness
     out.push(`<section class="card" aria-labelledby="cash-h">
       <div class="card-head"><h2 id="cash-h">Cash</h2><button class="link" data-act="open" data-sub="accounts">All accounts ${ico("chev", "s")}</button></div>
       <div class="rows">${st.included.map((x) => `<div class="row"><span class="cat">${ico(x.account.type === "cash" ? "wallet" : "bank")}</span><div class="grow"><div class="t">${esc(x.account.name)}</div><div class="s">${freshness(x.account)}</div></div><div class="amt">${money(x.balance)}</div></div>`).join("")}</div>
+    </section>`);
+
+    // Recent transactions
+    const recent = S.transactions.filter((t) => !t.deleted_at).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
+    out.push(`<section class="card" aria-labelledby="rt-h">
+      <div class="card-head"><h2 id="rt-h">Recent transactions</h2><button class="link" data-tab="activity">Activity ${ico("chev", "s")}</button></div>
+      <div class="rows">${recent.map(txRow).join("") || emptyState("list", "No transactions yet", "Add your first expense to see it here.")}</div>
     </section>`);
 
     // This period
@@ -381,6 +404,17 @@
     </div></section>`);
     out.push(`<button class="btn primary fab" data-act="add-tx">${ico("plus")}Add</button>`);
     return out.join("");
+  }
+
+  // Windows offered for Safe to Spend. A budget period that ends on payday would repeat
+  // "Until payday", so it's only offered when it ends on a different day.
+  function stsWindows(T) {
+    const period = S.settings.period;
+    const base = C.safeToSpend(S, T, { window: "payday" });
+    const options = [["payday", "Until payday"], ["week", "Next 7 days"]];
+    if (base.range.end !== base.payday) options.push(["period", `This ${WORD[period]}`]);
+    const want = S.settings.sts_window || "payday";
+    return { options, current: options.some(([v]) => v === want) ? want : "payday" };
   }
 
   function occRow(o) {
@@ -470,6 +504,7 @@
     if (t.status === "reversed") chips.push(`<span class="chip">Reversed</span>`);
     if (t.status === "excluded") chips.push(`<span class="chip">Excluded</span>`);
     if (t.possible_duplicate_of) chips.push(`<span class="chip error">Possible duplicate</span>`);
+    if (t.refund) chips.push(`<span class="chip ok">Refund</span>`);
     chips.push(t.source === "bank" ? `<span class="chip sample">Bank · demo</span>` : t.source === "csv_import" ? `<span class="chip">CSV import</span>` : `<span class="chip">Manual</span>`);
     if (t.receipt) chips.push(`<span title="Receipt attached">${ico("receipt", "s")}</span>`);
     const amt = t.type === "income" ? `+${money(t.amount)}` : t.type === "transfer" ? money(t.amount) : `−${money(t.amount)}`;
@@ -594,6 +629,11 @@
       ${months.map((m) => `<tr><td>${fmt(m.start, { month: "short" })}${m.partial ? " (so far)" : ""}</td><td>${money0(m.income)}</td><td>${money0(m.expenses)}</td><td class="${m.net < 0 ? "up" : "down"}">${money0(m.net)}</td><td>${m.savingsRate == null ? "–" : Math.round(m.savingsRate * 100) + "%"}</td></tr>`).join("")}
       </tbody></table></div>
       <p class="tiny muted">Saved = income minus spending, as a share of income. Transfers between your accounts aren't counted.</p></section>`);
+    // Recurring spending
+    const rec = C.recurringSpending(S);
+    out.push(`<section class="card" aria-labelledby="rec-h"><div class="card-head"><h2 id="rec-h">Recurring bills</h2><span class="num small" style="font-weight:600">${money(rec.total)} a month</span></div>
+      <div class="rows">${rec.items.slice(0, 6).map((x) => `<button class="row" data-act="rule-edit" data-id="${x.rule.id}"><span class="cat bill">${ico((cat(x.rule.category_id) || {}).icon || "cal")}</span><div class="grow"><div class="t">${esc(x.rule.name)}</div><div class="s">${money(x.rule.amount)} ${FREQ[x.rule.frequency].toLowerCase()}</div></div><div class="amt">${money(x.monthly)}<div class="tiny muted">a month</div></div></button>`).join("") || `<p class="small muted">No recurring bills yet.</p>`}</div>
+      <p class="tiny muted">Source: your active recurring bills, converted to a monthly amount. One-off bills aren't included.</p></section>`);
     // Spending by category
     const cats = C.spendingByCategory(S, R.from, R.to);
     const total = cats.reduce((s, c) => s + c.total, 0) || 1;
@@ -725,6 +765,8 @@
       ${Object.keys(groups).sort().map((d) => { const b = balOn(d); return `<div class="card-head" style="padding-top:8px"><span class="eyebrow">${relDay(d)}</span>${b != null ? `<span class="tiny num ${b < 0 ? "err" : "muted"}">Cash after: ${money(b)}</span>` : ""}</div><div class="rows">${groups[d].map(occRow).join("")}</div>`; }).join("") || emptyState("cal", "No bills coming up", "Add a bill so Pace can plan for it.")}</section>`);
     const paid = C.billOccurrences(S, C.addDays(T, -30), C.addDays(T, 1), T).filter((o) => ["paid", "skipped"].includes(o.status)).reverse();
     if (paid.length) out.push(`<section class="card"><details><summary class="bd-line">${ico("chev", "s chev")}<span class="grow">Paid and skipped, last 30 days (${paid.length})</span></summary><div class="rows">${paid.map(occRow).join("")}</div></details></section>`);
+    const incomes = S.recurring.filter((r) => r.kind === "income");
+    out.push(`<section class="card"><div class="card-head"><h2>Income</h2><button class="btn small" data-act="income-edit">${ico("plus", "s")}Add income</button></div><div class="rows">${incomes.map((r) => { const nx = C.incomeOccurrences(S, T, C.addDays(T, 400)).find((o) => o.rule.id === r.id && !o.received); return `<button class="row" data-act="income-edit" data-id="${r.id}"><span class="cat income">${ico("wallet")}</span><div class="grow"><div class="t">${esc(r.name)}</div><div class="s"><span>${FREQ[r.frequency]}</span>${r.variable ? `<span class="chip caution">Estimate</span>` : ""}${r.status !== "active" ? `<span class="chip">Paused</span>` : nx ? `<span>Next ${relDay(nx.date)}</span>` : ""}</div></div><div class="amt in">${money(r.amount)}</div></button>`; }).join("") || `<p class="small muted">No income added. Safe to Spend runs to the end of the month until you add your pay.</p>`}</div></section>`);
     const rules = S.recurring.filter((r) => r.kind === "bill");
     out.push(`<section class="card"><h2>All bills</h2><div class="rows">${rules.map((r) => `<button class="row" data-act="rule-edit" data-id="${r.id}"><span class="cat bill">${ico((cat(r.category_id) || {}).icon || "cal")}</span><div class="grow"><div class="t">${esc(r.name)}</div><div class="s"><span>${FREQ[r.frequency]}</span>${r.status !== "active" ? `<span class="chip">${r.status === "paused" ? "Paused" : "Cancelled"}</span>` : ""}${r.end_date ? `<span>Ends ${dShort(r.end_date)}</span>` : ""}</div></div><div class="amt">${money(r.amount)}</div></button>`).join("") || `<p class="small muted">No bills yet.</p>`}</div></section>`);
     return out.join("");
@@ -830,7 +872,7 @@
         ${row("App lock", "Ask for Face ID, fingerprint or passcode when Pace opens (simulated)", switchCtl("set-lock", S.settings.app_lock, "applock", "", "App lock"))}
         <div class="switch-row"><div class="grow"><b>Linked providers</b><div class="small muted">${S.connections.length ? S.connections.map((c) => `${esc(c.institution_name)}: ${c.status}`).join(", ") : "None"}</div></div><button class="btn small" data-act="open" data-sub="accounts">Manage</button></div>
       </div><p class="tiny muted">Pace never stores bank passwords. Bank access uses consent references that you can withdraw.</p></section>
-      <section class="card"><h2>Your data</h2><div class="btn-row"><button class="btn" data-act="export">Export my data</button><button class="btn danger" data-act="delete-all">Delete all data</button></div></section>
+      <section class="card"><h2>Your data</h2>${notice("info", "Stored on this device only", "This prototype keeps your data in this browser's local storage. It isn't encrypted, backed up or synced to the cloud, so don't enter real bank details.")}<div class="btn-row"><button class="btn" data-act="export">Export my data</button><button class="btn danger" data-act="delete-all">Delete all data</button></div></section>
       <section class="card"><h2>Prototype tools</h2><div class="rows">
         ${row("Simulate offline", "See how Pace behaves without a connection", switchCtl("set-offline", S.settings.offline, "offline", "", "Simulate offline"))}
       </div>${guideFlows()}<div class="btn-row"><button class="btn" data-act="reset-sample">Reset sample data</button></div></section>`;
@@ -1016,8 +1058,9 @@
       <div class="grid2">
         <label class="field" data-show="expense income transfer"><span data-label-from>${type === "transfer" ? "From" : "Account"}</span><select class="input" name="account_id" ${bank ? "disabled" : ""}>${options(fromAccts.map((a) => [a.id, a.name]), t.account_id)}</select></label>
         <label class="field" data-show="transfer" ${type === "transfer" ? "" : "hidden"}>To<select class="input" name="to_account_id">${options(toAccts.map((a) => [a.id, a.name]), t.to_account_id || (toAccts.find((a) => a.id !== t.account_id) || {}).id)}</select></label>
-        <label class="field" data-show="expense income" ${type === "transfer" ? "hidden" : ""}>Category<select class="input" name="category_id" data-cats>${options(catsFor(type).map((c) => [c.id, c.name]), t.category_id)}</select></label>
+        <label class="field" data-show="expense income" ${type === "transfer" ? "hidden" : ""}>Category<select class="input" name="category_id" data-cats>${options(catsFor(t.refund ? "expense" : type).map((c) => [c.id, c.name]), t.category_id)}</select></label>
       </div>
+      <label class="check" data-show="income" ${type === "income" ? "" : "hidden"}><input type="checkbox" name="refund" ${t.refund ? "checked" : ""}> This is a refund for something I bought. It lowers spending in that category instead of counting as income.</label>
       <label class="field">${type === "income" ? "From" : "Merchant or payee"}<input class="input" name="merchant" value="${esc(t.merchant || "")}" maxlength="60" autocomplete="off"></label>
       <div class="grid2"><label class="field">Date<input class="input" type="date" name="date" value="${t.date}" ${bank ? "disabled" : ""} required></label>
       ${isNew ? `<label class="field" data-show="expense income">Repeats<select class="input" name="repeat">${options([["none", "Doesn't repeat"], ["weekly", "Weekly"], ["fortnightly", "Fortnightly"], ["monthly", "Monthly"]], "none")}</select></label>` : ""}</div>
@@ -1036,8 +1079,11 @@
           $("[name=type]", el).value = v;
           $$("[data-show]", el).forEach((f) => (f.hidden = !f.dataset.show.split(" ").includes(v)));
           $("[data-label-from]", el).textContent = v === "transfer" ? "From" : "Account";
-          $("[data-cats]", el).innerHTML = options(catsFor(v).map((c) => [c.id, c.name]));
+          $("[data-cats]", el).innerHTML = options(catsFor(v === "income" && $("[name=refund]", el).checked ? "expense" : v).map((c) => [c.id, c.name]));
           $("#dup-warn", el).innerHTML = "";
+        });
+        $("[name=refund]", el).addEventListener("change", (e) => {
+          $("[data-cats]", el).innerHTML = options(catsFor(e.target.checked ? "expense" : "income").map((c) => [c.id, c.name]));
         });
       },
     });
@@ -1059,6 +1105,7 @@
       t.to_account_id = type === "transfer" ? fd.get("to_account_id") : null;
     }
     t.category_id = t.type === "transfer" ? (existing ? existing.category_id : null) : fd.get("category_id");
+    t.refund = t.type === "income" && !!fd.get("refund");
     t.merchant = fd.get("merchant").trim() || (t.type === "transfer" ? "Transfer to " + acctName(t.to_account_id) : catName(t.category_id));
     t.note = fd.get("note").trim();
     if (ui.receiptDraft !== undefined) t.receipt = ui.receiptDraft;
@@ -1074,7 +1121,7 @@
     }
     let next = C.upsertTransaction(S, t, now());
     const repeat = fd.get("repeat");
-    if (!existing && repeat && repeat !== "none" && t.type !== "transfer") {
+    if (!existing && repeat && repeat !== "none" && t.type !== "transfer" && !t.refund) {
       const rule = { id: uid("r"), kind: t.type === "income" ? "income" : "bill", name: t.merchant, amount: t.amount, frequency: repeat, start_date: t.date, status: "active", account_id: t.account_id, category_id: t.category_id, reminder_days: 2, variable: false };
       next = { ...next, recurring: [...next.recurring, rule], transactions: next.transactions.map((x) => x.id === t.id ? { ...x, [t.type === "income" ? "income_rule_id" : "bill_occurrence_id"]: t.type === "income" ? rule.id : C.occurrenceId(rule.id, t.date) } : x) };
     }
@@ -1082,7 +1129,7 @@
     const toAcct = t.type === "transfer" && acct(t.to_account_id);
     if (!existing && toAcct && toAcct.reserved_for_goal_id) next = { ...next, contributions: [...next.contributions, { id: uid("k"), goal_id: toAcct.reserved_for_goal_id, amount: t.amount, date: t.date, occurrence_id: null, transaction_id: t.id }] };
     closeSheet();
-    apply(existing ? "Changes saved." : t.type === "expense" ? "Expense added." : t.type === "income" ? "Income added." : "Transfer added.", next, { undoable: !existing });
+    apply(existing ? "Changes saved." : t.type === "expense" ? "Expense added." : t.refund ? "Refund added." : t.type === "income" ? "Income added." : "Transfer added.", next, { undoable: !existing });
   }
 
   function txDetail(id) {
@@ -1195,6 +1242,34 @@
         <button class="btn" data-act="rule-edit" data-id="${r.id}">${ico("edit", "s")}Edit bill</button>
       </div>
       <p class="tiny muted">Marking as paid records a payment from ${esc(acctName(r.account_id))}. If your bank later imports the same payment, Pace links them instead of counting it twice.</p>`);
+  }
+
+  function incomeForm(r) {
+    const isNew = !r;
+    const T = today();
+    const nextPay = r ? ((C.incomeOccurrences(S, T, C.addDays(T, 400)).find((o) => o.rule.id === r.id && !o.received) || {}).date || r.start_date) : C.addDays(T, 7);
+    r = r || { name: "Pay", amount: null, frequency: "fortnightly", variable: false, account_id: (cashAccounts()[0] || {}).id, status: "active" };
+    openSheet(isNew ? "Add income" : "Edit income", `<form data-form="income" data-id="${isNew ? "" : r.id}" data-orig-next="${nextPay}" novalidate>
+      <label class="field">Name<input class="input" name="name" value="${esc(r.name)}" maxlength="40" required></label>
+      <div class="grid2">${moneyField("amount", "Take-home amount", r.amount ? plain(r.amount) : "", { required: true, placeholder: "0.00" })}
+      <label class="field">How often<select class="input" name="frequency">${options([["weekly", "Weekly"], ["fortnightly", "Fortnightly"], ["monthly", "Monthly"]], r.frequency)}</select></label></div>
+      <div class="grid2"><label class="field">Next payday<input class="input" type="date" name="next" value="${nextPay}" required></label>
+      <label class="field">Paid into<select class="input" name="account_id">${options(cashAccounts().map((a) => [a.id, a.name]), r.account_id)}</select></label></div>
+      <label class="check"><input type="checkbox" name="variable" ${r.variable ? "checked" : ""}> This amount changes (shifts or casual work). Pace will label it as an estimate.</label>
+      ${isNew ? "" : `<label class="field">Status<select class="input" name="status">${options([["active", "Active"], ["paused", "Paused (not expected)"]], r.status)}</select></label>`}
+      <p class="err" id="inc-err"></p>
+      <button class="btn primary">${isNew ? "Add income" : "Save"}</button>
+    </form>`);
+  }
+  function resForm(r) {
+    openSheet(r ? "Edit set-aside" : "Set money aside", `<form data-form="res" data-id="${r ? r.id : ""}" novalidate>
+      <label class="field">What it's for<input class="input" name="name" value="${esc(r ? r.name : "")}" maxlength="50" required placeholder="e.g. Paying Sam back"></label>
+      ${moneyField("amount", "Amount", r ? plain(r.amount) : "", { required: true, placeholder: "0.00" })}
+      <p class="small muted">Set-asides are subtracted from Safe to Spend until you release them. No money moves.</p>
+      <p class="err" id="res-err"></p>
+      <button class="btn primary">${r ? "Save" : "Set aside"}</button>
+      ${r ? `<button type="button" class="btn" data-act="res-release" data-id="${r.id}">Release this money</button>` : ""}
+    </form>`);
   }
 
   function goalForm(g) {
@@ -1470,6 +1545,10 @@
     "set-period": (el) => { S = { ...S, settings: { ...S.settings, period: el.dataset.v } }; render(); },
     dismiss: (el) => { S = { ...S, dismissed: { ...S.dismissed, [el.dataset.key]: true } }; render(); },
     unlock: () => { ui.locked = false; render(); },
+    "sts-window": (el) => { S = { ...S, settings: { ...S.settings, sts_window: el.dataset.v } }; render(); const b = $(`[data-act=sts-window][data-v=${el.dataset.v}]`); if (b) b.focus(); },
+    "income-edit": (el) => { closeSheet(); incomeForm(el.dataset.id ? ruleOf(el.dataset.id) : null); },
+    "res-edit": (el) => resForm(el.dataset.id ? (S.reservations || []).find((r) => r.id === el.dataset.id) : null),
+    "res-release": (el) => { const id = el.dataset.id; closeSheet(); apply("Set-aside released.", { ...S, reservations: S.reservations.map((r) => r.id === id ? { ...r, released_at: now() } : r) }, { undoable: true }); },
 
     "add-tx": (el) => { closeSheet(); txForm(null, { type: el.dataset.type }); },
     "tx-detail": (el) => txDetail(el.dataset.id),
@@ -1733,6 +1812,29 @@
       closeSheet();
       apply(`${name} updated.`, next, { undoable: true });
     },
+    income: (form) => {
+      const fd = new FormData(form);
+      const id = form.dataset.id;
+      const name = fd.get("name").trim(), amount = C.parseMoney(fd.get("amount")), next = fd.get("next");
+      if (!name || !(amount > 0) || !next) { $("#inc-err").textContent = "Add a name, an amount above $0 and the next payday."; return; }
+      if (!id && next < today()) { $("#inc-err").textContent = "Choose today or a later date."; return; }
+      const base = { name, amount, frequency: fd.get("frequency"), account_id: fd.get("account_id"), variable: !!fd.get("variable") };
+      const next2 = id
+        ? { ...S, recurring: S.recurring.map((r) => r.id === id ? { ...r, ...base, status: fd.get("status") || r.status, start_date: next !== form.dataset.origNext ? next : r.start_date } : r) }
+        : { ...S, recurring: [...S.recurring, { id: uid("r"), kind: "income", status: "active", category_id: "c_pay", start_date: next, ...base }] };
+      closeSheet();
+      apply(id ? "Pay updated." : "Income added.", next2, { undoable: true });
+    },
+    res: (form) => {
+      const fd = new FormData(form);
+      const id = form.dataset.id;
+      const name = fd.get("name").trim(), amount = C.parseMoney(fd.get("amount"));
+      if (!name || !(amount > 0)) { $("#res-err").textContent = "Add what it's for and an amount above $0."; return; }
+      const list = S.reservations || [];
+      const next = id ? list.map((r) => (r.id === id ? { ...r, name, amount } : r)) : [...list, { id: uid("res"), name, amount, created_at: now() }];
+      closeSheet();
+      apply(id ? "Set-aside updated." : `${money(amount)} set aside.`, { ...S, reservations: next }, { undoable: true });
+    },
     "connect-review": connectImport,
     "connect-reconcile": (form) => {
       const fd = new FormData(form);
@@ -1750,6 +1852,7 @@
     applock: (el) => { S = { ...S, settings: { ...S.settings, app_lock: el.checked } }; save(); toast(el.checked ? "App lock on. Pace will ask to unlock next time it opens." : "App lock off."); },
     offline: (el) => { S = { ...S, settings: { ...S.settings, offline: el.checked } }; render(); const r = $(`#${el.id}`); if (r) r.focus(); },
     currency: () => {},
+    "sts-expected": (el) => { S = { ...S, settings: { ...S.settings, sts_include_expected: el.checked } }; render(); const r = $("#sts-expected"); if (r) r.focus(); },
     "goal-check": (el) => goalCheck(el.form),
     receipt: (el) => {
       const file = el.files && el.files[0];
