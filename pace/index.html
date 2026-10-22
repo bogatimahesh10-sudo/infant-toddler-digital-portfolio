@@ -2,931 +2,361 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: phone-width app column with a bottom tab bar; on wide screens a product-brief panel sits beside it. */
+/* Layout: one phone-width app column (screens, sticky tab bar, bottom sheets); on wide screens a prototype guide sits beside it. */
 :root {
-  --bg: #eef2ef;
+  /* Brand tokens from the Pace spec */
+  --forest: #132820;
+  --sage: #6f9e7a;
+  --warm-white: #f5f5ef;
+  --amber-ink: #513c1d;
+  /* Derived roles */
+  --bg: var(--warm-white);
   --surface: #ffffff;
-  --surface-2: #f6f8f6;
-  --ink: #14211d;
-  --muted: #5d6c67;
-  --line: #dbe3df;
-  --accent: #0d7560;
-  --accent-ink: #ffffff;
-  --accent-soft: #dff0ea;
-  --warn: #9a5c00;
-  --warn-soft: #fbefd6;
-  --bad: #b8372a;
-  --bad-soft: #fbe3df;
-  --good: #1d7d46;
-  --demo: #6b4fbb;
-  --demo-soft: #ece6fb;
-  --shadow: 0 1px 2px rgba(20, 33, 29, .06), 0 6px 20px rgba(20, 33, 29, .06);
-  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --r: 16px;
-  --r-sm: 10px;
+  --surface-2: #eeeee6;
+  --ink: var(--forest);
+  --muted: #56645b;
+  --line: #dddfd3;
+  --accent: var(--forest);
+  --accent-ink: #f5f5ef;
+  --sage-ink: #3d6a49;
+  --sage-soft: #e2ebe0;
+  --hero: var(--forest);
+  --hero-ink: #f5f5ef;
+  --caution-bg: #f4e7cb;
+  --caution-ink: var(--amber-ink);
+  --caution-mark: #9a6a1c;
+  --error-bg: #f7dfd9;
+  --error-ink: #7a2216;
+  --error-mark: #b23a28;
+  --info-bg: #e5eae4;
+  --sample-bg: #ebe4f5;
+  --sample-ink: #4b3880;
+  --shadow: 0 1px 2px rgba(19, 40, 32, .06), 0 4px 14px rgba(19, 40, 32, .06);
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r-card: 16px;
+  --r-ctl: 12px;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0c1311; --surface: #151f1c; --surface-2: #1b2723; --ink: #e5eeea; --muted: #94a59f; --line: #263430;
-    --accent: #43c6a4; --accent-ink: #062019; --accent-soft: #15312a; --warn: #e6a94a; --warn-soft: #33270f;
-    --bad: #f2806f; --bad-soft: #3b1d18; --good: #5fcf8e; --demo: #b9a4f5; --demo-soft: #2a2343;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3); color-scheme: dark;
+    --bg: #0e1713; --surface: #16211b; --surface-2: #1d2b23; --ink: #eef0e8; --muted: #a2ada5; --line: #2a3830;
+    --accent: #9cc8a7; --accent-ink: #0e1713; --sage-ink: #9cc8a7; --sage-soft: #1f3327; --hero: #1d3a2c; --hero-ink: #f5f5ef;
+    --caution-bg: #3a2d16; --caution-ink: #f0d6a2; --caution-mark: #e6b45c; --error-bg: #3d1e19; --error-ink: #f6c4ba; --error-mark: #f08c7e;
+    --info-bg: #1f2a24; --sample-bg: #2a2340; --sample-ink: #cbbcf3; --shadow: 0 1px 2px rgba(0, 0, 0, .35); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0c1311; --surface: #151f1c; --surface-2: #1b2723; --ink: #e5eeea; --muted: #94a59f; --line: #263430;
-  --accent: #43c6a4; --accent-ink: #062019; --accent-soft: #15312a; --warn: #e6a94a; --warn-soft: #33270f;
-  --bad: #f2806f; --bad-soft: #3b1d18; --good: #5fcf8e; --demo: #b9a4f5; --demo-soft: #2a2343;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .3); color-scheme: dark;
+  --bg: #0e1713; --surface: #16211b; --surface-2: #1d2b23; --ink: #eef0e8; --muted: #a2ada5; --line: #2a3830;
+  --accent: #9cc8a7; --accent-ink: #0e1713; --sage-ink: #9cc8a7; --sage-soft: #1f3327; --hero: #1d3a2c; --hero-ink: #f5f5ef;
+  --caution-bg: #3a2d16; --caution-ink: #f0d6a2; --caution-mark: #e6b45c; --error-bg: #3d1e19; --error-ink: #f6c4ba; --error-mark: #f08c7e;
+  --info-bg: #1f2a24; --sample-bg: #2a2340; --sample-ink: #cbbcf3; --shadow: 0 1px 2px rgba(0, 0, 0, .35); color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 body {
-  background: var(--bg);
-  color: var(--ink);
-  font: 15px/1.45 var(--font-body);
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--bg); color: var(--ink); font: 1rem/1.45 var(--font);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
-h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
-h2 { font-size: 1.05rem; font-weight: 700; }
-h3 { font-size: .95rem; font-weight: 700; }
+h1, h2, h3 { margin: 0; text-wrap: balance; letter-spacing: -.015em; }
+h1 { font-size: 1.5rem; font-weight: 700; }
+h2 { font-size: 1.0625rem; font-weight: 650; }
+h3 { font-size: .9375rem; font-weight: 600; }
 p { margin: 0; }
-button, input, select { font: inherit; color: inherit; }
-.num { font-variant-numeric: tabular-nums; }
+button, input, select, textarea { font: inherit; color: inherit; }
+.num, .amt, input.money { font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
-.small { font-size: .84rem; }
+.small { font-size: .8125rem; }
+.tiny { font-size: .75rem; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+svg.i { width: 20px; height: 20px; flex: none; }
+svg.i.s { width: 16px; height: 16px; }
 
-.shell { display: flex; justify-content: center; gap: 40px; max-width: 1080px; margin: 0 auto; }
-.brief { display: none; }
-@media (min-width: 980px) {
-  .brief { display: flex; flex-direction: column; gap: 22px; width: 380px; padding-block: 40px; position: sticky; top: 0; align-self: flex-start; }
-}
-.app { width: 100%; max-width: 440px; min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
+.shell { display: flex; justify-content: center; gap: 48px; max-width: 1100px; margin: 0 auto; }
+.guide { display: none; }
+@media (min-width: 1000px) { .guide { display: flex; flex-direction: column; gap: var(--s5); width: 380px; padding-block: 40px; position: sticky; top: 0; align-self: flex-start; } }
+.app { width: 100%; max-width: 430px; min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
 
 /* Header */
-.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 12px 10px; display: flex; align-items: center; gap: 10px; }
-.wordmark { font-family: var(--font-display); font-weight: 700; font-size: 1.45rem; letter-spacing: -.03em; display: flex; align-items: center; gap: 7px; }
-.wordmark svg { width: 22px; height: 22px; }
-.top .spacer { flex: 1; }
-.demo-chip {
-  display: inline-flex; align-items: center; gap: 6px; font-size: .74rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-  color: var(--demo); background: var(--demo-soft); border-radius: 999px; padding: 4px 10px; border: 0; cursor: pointer;
-}
-.demo-chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--demo); }
-.icon-btn { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; width: 36px; height: 36px; display: grid; place-items: center; cursor: pointer; }
-.icon-btn svg { width: 18px; height: 18px; }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 6; background: var(--bg); padding: var(--s3) 4px var(--s2); display: flex; align-items: center; gap: var(--s2); min-height: 60px; }
+.top .title { flex: 1; min-width: 0; font-weight: 650; font-size: 1.0625rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wordmark { flex: 1; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.375rem; letter-spacing: -.03em; }
+.wordmark svg { width: 24px; height: 24px; }
+.icon-btn { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; width: 40px; height: 40px; display: grid; place-items: center; cursor: pointer; color: var(--ink); }
+.icon-btn:hover { border-color: var(--muted); }
+.icon-btn.plain { border-color: transparent; background: transparent; }
 
-main { flex: 1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 20px; }
+main { flex: 1; display: flex; flex-direction: column; gap: var(--s3); padding: var(--s1) 4px var(--s6); }
 
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.eyebrow { font-size: .74rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+/* Feedback: success, caution, error, info, empty, offline. Always text plus an icon. */
+.notice { display: flex; gap: var(--s3); align-items: flex-start; border-radius: var(--r-ctl); padding: var(--s3) var(--s4); font-size: .875rem; }
+.notice .mark { flex: none; margin-top: 1px; }
+.notice b { display: block; font-weight: 650; }
+.notice .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.notice .actions { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s2); }
+.notice.success { background: var(--sage-soft); } .notice.success .mark { color: var(--sage-ink); }
+.notice.caution { background: var(--caution-bg); color: var(--caution-ink); } .notice.caution .mark { color: var(--caution-mark); }
+.notice.error { background: var(--error-bg); color: var(--error-ink); } .notice.error .mark { color: var(--error-mark); }
+.notice.info, .notice.offline { background: var(--info-bg); } .notice.info .mark, .notice.offline .mark { color: var(--muted); }
+.notice.sample { background: var(--sample-bg); color: var(--sample-ink); } .notice.sample .mark { color: var(--sample-ink); }
+.empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--s2); padding: var(--s6) var(--s4); color: var(--muted); }
+.empty svg { width: 32px; height: 32px; color: var(--sage); }
+.empty b { color: var(--ink); }
 
-/* Safe to spend hero */
-.hero { background: var(--accent); color: var(--accent-ink); border: 0; box-shadow: var(--shadow); gap: 14px; }
-.hero.tight { background: var(--warn); color: #fff; }
-.hero.short { background: var(--bad); color: #fff; }
-:root[data-theme="dark"] .hero.tight, :root[data-theme="dark"] .hero.short { color: #1b0d07; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .hero.tight, :root:not([data-theme="light"]) .hero.short { color: #1b0d07; } }
-.hero .eyebrow { color: inherit; opacity: .85; }
-.hero-amount { font-family: var(--font-display); font-size: 3.1rem; font-weight: 700; line-height: 1; letter-spacing: -.035em; }
-.hero-amount .cents { font-size: .45em; letter-spacing: 0; opacity: .85; }
-.hero-sub { font-size: .95rem; opacity: .95; }
-.status-pill { align-self: flex-start; font-size: .78rem; font-weight: 700; border-radius: 999px; padding: 3px 10px; background: rgba(255,255,255,.2); }
-
-/* Pace track: time through the pay cycle vs spending money used */
-.pace { display: flex; flex-direction: column; gap: 8px; }
-.pace-track { position: relative; height: 26px; }
-.pace-rail { position: absolute; left: 0; right: 0; top: 11px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.28); }
-.pace-fill { position: absolute; left: 0; top: 11px; height: 4px; border-radius: 2px; background: currentColor; }
-.pace-today { position: absolute; top: 3px; width: 2px; height: 20px; background: currentColor; border-radius: 1px; transform: translateX(-1px); }
-.pace-dot { position: absolute; top: 6px; width: 14px; height: 14px; border-radius: 50%; background: currentColor; border: 3px solid rgba(255,255,255,.55); transform: translateX(-7px); }
-.pace-labels { display: flex; justify-content: space-between; font-size: .76rem; opacity: .85; }
-.pace-note { font-size: .86rem; }
-
+/* Cards and rows */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: var(--s4); display: flex; flex-direction: column; gap: var(--s3); min-width: 0; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); min-width: 0; }
+.card-head > :first-child { min-width: 0; }
+.eyebrow { font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.link { background: none; border: 0; padding: 4px 0; color: var(--sage-ink); font-weight: 600; font-size: .875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+.link:hover { text-decoration: underline; }
 .rows { display: flex; flex-direction: column; }
-.row { display: flex; align-items: center; gap: 12px; padding-block: 10px; border-top: 1px solid var(--line); }
+.row { display: flex; align-items: center; gap: var(--s3); padding-block: 10px; border-top: 1px solid var(--line); min-width: 0; text-align: left; width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; color: inherit; }
 .row:first-child { border-top: 0; padding-top: 0; }
 .row:last-child { padding-bottom: 0; }
+button.row { cursor: pointer; }
+button.row:hover .t { text-decoration: underline; }
 .row .grow { flex: 1; min-width: 0; }
-.row .title { font-weight: 600; }
-.row .sub { font-size: .8rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.row .amt { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.row.total { border-top: 2px solid var(--ink); font-weight: 700; }
-.badge { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: .72rem; font-weight: 700; flex: none; background: var(--surface-2); color: var(--muted); }
-.badge.bill { background: var(--warn-soft); color: var(--warn); }
-.badge.debt { background: var(--bad-soft); color: var(--bad); }
-.badge.saving { background: var(--accent-soft); color: var(--accent); }
-.badge.income { background: var(--accent); color: var(--accent-ink); }
+.row .t { font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .s { font-size: .8125rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.row .s > span { display: inline-flex; align-items: center; gap: 3px; }
+.row .amt { font-weight: 600; white-space: nowrap; text-align: right; }
+.row .amt.in { color: var(--sage-ink); }
+.row .amt.strike { text-decoration: line-through; color: var(--muted); }
+.row.total { border-top: 2px solid var(--ink); font-weight: 700; padding-top: var(--s3); }
+.row.sub { padding-block: 4px; border-top: 0; font-size: .8125rem; color: var(--muted); }
+.cat { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; flex: none; background: var(--surface-2); color: var(--ink); }
+.cat svg { width: 18px; height: 18px; }
+.cat.bill { background: var(--caution-bg); color: var(--caution-mark); }
+.cat.goal { background: var(--sage-soft); color: var(--sage-ink); }
+.cat.income { background: var(--sage); color: #fff; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: .6875rem; font-weight: 650; letter-spacing: .02em; border-radius: 999px; padding: 2px 8px; white-space: nowrap; background: var(--surface-2); color: var(--muted); }
+.chip.ok { background: var(--sage-soft); color: var(--sage-ink); }
+.chip.caution { background: var(--caution-bg); color: var(--caution-ink); }
+.chip.error { background: var(--error-bg); color: var(--error-ink); }
+.chip.sample { background: var(--sample-bg); color: var(--sample-ink); }
+.chip.solid { background: var(--ink); color: var(--bg); }
+.chip svg { width: 12px; height: 12px; }
 
-.alert { border-radius: var(--r-sm); padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; font-size: .9rem; }
-.alert b { display: block; }
-.alert.warn { background: var(--warn-soft); color: var(--ink); }
-.alert.warn .mark { color: var(--warn); }
-.alert.bad { background: var(--bad-soft); }
-.alert.bad .mark { color: var(--bad); }
-.alert.good { background: var(--accent-soft); }
-.alert.good .mark { color: var(--accent); }
-.alert .mark { font-weight: 800; font-family: var(--font-display); font-size: 1.1rem; line-height: 1.2; }
+/* Safe to Spend hero */
+.hero { background: var(--hero); color: var(--hero-ink); border: 0; box-shadow: var(--shadow); gap: var(--s3); }
+.hero .eyebrow { color: inherit; opacity: .8; }
+.hero-amt { font-size: 3rem; font-weight: 700; line-height: 1.05; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.hero-amt .c { font-size: .45em; letter-spacing: 0; opacity: .8; }
+.hero.shortfall .hero-amt { color: #ffb4a6; }
+.hero .meta { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: .875rem; opacity: .92; }
+.hero .chip { background: rgba(245, 245, 239, .16); color: inherit; }
+.hero .chip.warn { background: #f4e7cb; color: #513c1d; }
+.hero .chip.bad { background: #ffb4a6; color: #3d120b; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.hero .btn.on-dark { background: rgba(245, 245, 239, .12); border-color: rgba(245, 245, 239, .28); color: inherit; }
+.countdown { display: flex; flex-direction: column; gap: 6px; }
+.countdown .track { height: 6px; border-radius: 3px; background: rgba(245, 245, 239, .18); overflow: hidden; }
+.countdown .track div { height: 100%; background: var(--sage); border-radius: 3px; }
+.countdown .labels { display: flex; justify-content: space-between; font-size: .75rem; opacity: .8; }
 
-.chip { display: inline-flex; align-items: center; gap: 4px; font-size: .72rem; font-weight: 700; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
-.chip.demo { background: var(--demo-soft); color: var(--demo); }
-.chip.ok { background: var(--accent-soft); color: var(--accent); }
-.chip.warn { background: var(--warn-soft); color: var(--warn); }
-.chip.bad { background: var(--bad-soft); color: var(--bad); }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
+.stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .v { font-weight: 650; font-size: 1.0625rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.stat .l { font-size: .75rem; color: var(--muted); }
 
-/* Forms */
-.field { display: flex; flex-direction: column; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 600; }
-.input { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 12px; width: 100%; color: var(--ink); font-weight: 500; }
-.input:focus, button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.money-input { position: relative; }
-.money-input span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
-.money-input .input { padding-left: 26px; }
-.inline-money { width: 104px; flex: none; }
-.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 10px 16px; font-weight: 600; cursor: pointer; }
+/* Budget bars: completed (solid), pending (hatched), scheduled (outlined) */
+.bar { position: relative; display: flex; height: 10px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.bar .done { background: var(--sage); }
+.bar .pend { background: repeating-linear-gradient(135deg, var(--sage) 0 3px, transparent 3px 6px); }
+.bar .sched { box-shadow: inset 0 0 0 1.5px var(--caution-mark); border-radius: 0 5px 5px 0; }
+.bar.over .done { background: var(--error-mark); }
+.bar.over .pend { background: repeating-linear-gradient(135deg, var(--error-mark) 0 3px, transparent 3px 6px); }
+.bar .limit { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: var(--s3); font-size: .75rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 8px; border-radius: 2px; display: inline-block; }
+.legend i.done { background: var(--sage); }
+.legend i.pend { background: repeating-linear-gradient(135deg, var(--sage) 0 3px, transparent 3px 6px); border: 1px solid var(--sage); }
+.legend i.sched { box-shadow: inset 0 0 0 1.5px var(--caution-mark); }
+.legend i.line { height: 3px; background: var(--sage-ink); }
+.legend i.dash { height: 0; border-top: 2px dashed var(--caution-mark); }
+.budget-row { display: flex; flex-direction: column; gap: 6px; padding-block: var(--s3); border-top: 1px solid var(--line); width: 100%; text-align: left; background: none; border-left: 0; border-right: 0; border-bottom: 0; color: inherit; cursor: pointer; }
+.budget-row:first-child { border-top: 0; padding-top: 0; }
+.budget-row .top-line { display: flex; align-items: center; gap: var(--s2); }
+.budget-row .name { flex: 1; min-width: 0; font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.budget-row .figs { display: flex; justify-content: space-between; gap: var(--s2); font-size: .8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.reorder { display: flex; gap: 4px; }
+.reorder button { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--ink); }
+.reorder button:disabled { opacity: .35; cursor: default; }
+
+/* Expandable breakdown lines */
+details > summary { list-style: none; cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary .chev { transition: transform .15s; color: var(--muted); }
+details[open] > summary .chev { transform: rotate(90deg); }
+.detail-body { display: flex; flex-direction: column; gap: 2px; padding: 0 0 var(--s2) 28px; }
+.bd-line { display: flex; align-items: center; gap: var(--s2); padding-block: 10px; border-top: 1px solid var(--line); }
+details:first-of-type > .bd-line { border-top: 0; padding-top: 0; }
+.bd-line .grow { flex: 1; min-width: 0; font-weight: 550; }
+.bd-line .amt { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mini { display: flex; align-items: center; gap: var(--s2); font-size: .8125rem; color: var(--muted); padding: 4px 0; width: 100%; background: none; border: 0; text-align: left; }
+button.mini { cursor: pointer; color: var(--ink); }
+button.mini:hover span:first-child { text-decoration: underline; }
+.mini span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini .amt { font-variant-numeric: tabular-nums; }
+.qa { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2); }
+.qa .btn { justify-content: flex-start; border-radius: var(--r-ctl); }
+.option { display: flex; gap: var(--s3); align-items: center; padding-block: var(--s3); border-top: 1px solid var(--line); }
+.option:first-of-type { border-top: 0; }
+.option .grow { flex: 1; min-width: 0; }
+.option b { display: block; font-weight: 600; }
+
+/* Controls */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 10px 16px; min-height: 44px; font-weight: 600; font-size: .9375rem; cursor: pointer; }
 .btn:hover { border-color: var(--muted); }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
 .btn.ghost { background: transparent; }
-.btn.danger { color: var(--bad); }
+.btn.danger { color: var(--error-mark); }
+.btn.danger.solid { background: var(--error-mark); color: #fff; border-color: var(--error-mark); }
+.btn.small { min-height: 34px; padding: 6px 12px; font-size: .8125rem; }
 .btn.block { width: 100%; }
-.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
-input[type="range"] { width: 100%; accent-color: var(--accent); }
-.seg { display: flex; flex-wrap: wrap; gap: 6px; }
-.seg button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 6px 12px; font-size: .84rem; cursor: pointer; }
-.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+.btn.loading { pointer-events: none; }
+.btn.loading::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn-row { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.btn-row > .btn { flex: 1 1 auto; }
+:focus-visible { outline: 2px solid var(--sage-ink); outline-offset: 2px; }
 
-.progress { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
-.progress > div { height: 100%; background: var(--accent); }
+.seg { display: flex; background: var(--surface-2); border-radius: 999px; padding: 3px; gap: 2px; }
+.seg button { flex: 1; border: 0; background: none; border-radius: 999px; padding: 7px 10px; min-height: 36px; font-size: .8125rem; font-weight: 600; color: var(--muted); cursor: pointer; text-align: center; white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: .8125rem; font-weight: 550; cursor: pointer; min-height: 36px; color: var(--ink); }
+.chips button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
-/* Plan */
-.assign { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-radius: var(--r-sm); padding: 12px 14px; background: var(--surface-2); }
-.assign.zero { background: var(--accent-soft); }
-.assign.over { background: var(--bad-soft); }
-.assign .big { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: .8125rem; font-weight: 600; color: var(--muted); min-width: 0; }
+.field .hint { font-weight: 400; }
+.input { width: 100%; min-height: 44px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 10px 12px; color: var(--ink); font-weight: 450; font-size: 1rem; }
+.input:hover { border-color: var(--muted); }
+.input[aria-invalid="true"] { border-color: var(--error-mark); }
+textarea.input { min-height: 140px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .75rem; }
+.money-wrap { position: relative; }
+.money-wrap > span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 500; }
+.money-wrap .input { padding-left: 26px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); }
+.check { display: flex; align-items: flex-start; gap: var(--s3); font-size: .9375rem; color: var(--ink); font-weight: 450; cursor: pointer; }
+.check input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--forest); flex: none; }
+.switch-row { display: flex; align-items: center; gap: var(--s3); padding-block: 10px; border-top: 1px solid var(--line); }
+.switch-row:first-child { border-top: 0; padding-top: 0; }
+.switch-row .grow { flex: 1; min-width: 0; }
+.switch { position: relative; width: 46px; height: 28px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; width: 100%; height: 100%; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: background .15s; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
+.switch input:checked + span { background: var(--sage-ink); }
+.switch input:checked + span::after { transform: translateX(18px); }
+.switch input:disabled { cursor: not-allowed; }
+.switch input:disabled + span { opacity: .4; }
+.switch input:focus-visible + span { outline: 2px solid var(--sage-ink); outline-offset: 2px; }
+.err { color: var(--error-mark); font-size: .8125rem; font-weight: 500; }
+.err:empty { display: none; }
+.search { position: relative; }
+.search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.search .input { padding-left: 38px; }
 
-/* Forecast chart */
-.chart { width: 100%; height: auto; display: block; }
-.chart text { fill: var(--muted); font-size: 10px; font-family: var(--font-body); }
-.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .78rem; color: var(--muted); }
-.legend span { display: inline-flex; align-items: center; gap: 6px; }
-.legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; background: var(--accent); }
-.legend i.buf { background: none; border-top: 2px dashed var(--warn); height: 0; }
-.legend i.pay { width: 8px; height: 8px; border-radius: 50%; }
-.day-head { display: flex; justify-content: space-between; font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding-top: 12px; }
-.day-head:first-child { padding-top: 0; }
+.progress { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.progress > div { height: 100%; background: var(--sage); border-radius: 4px; }
 
-/* Bottom tab bar */
-.tabs {
-  position: sticky; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(5, 1fr);
-  background: var(--surface); border: 1px solid var(--line); border-bottom: 0; border-radius: 18px 18px 0 0;
-  padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); margin-inline: -4px;
-}
-.tabs button { border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: .7rem; font-weight: 600; color: var(--muted); padding: 6px 0; cursor: pointer; border-radius: 10px; }
-.tabs button svg { width: 22px; height: 22px; }
-.tabs button[aria-current="page"] { color: var(--accent); }
+/* Charts */
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { fill: var(--muted); font-size: 10px; font-family: var(--font); }
+.hbar { display: flex; flex-direction: column; gap: 4px; }
+.hbar .line { display: flex; justify-content: space-between; gap: var(--s2); font-size: .8125rem; }
+.hbar .track { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.hbar .track div { height: 100%; background: var(--sage); border-radius: 4px; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .8125rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px 6px; text-align: right; border-top: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; padding-left: 0; }
+th { font-weight: 600; color: var(--muted); border-top: 0; }
+td.up { color: var(--error-mark); } td.down { color: var(--sage-ink); }
 
-.fab { position: sticky; bottom: 78px; align-self: flex-end; margin-top: -60px; z-index: 4; box-shadow: var(--shadow); display: inline-flex; align-items: center; gap: 6px; }
+/* Calendar */
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; text-align: center; font-size: .8125rem; }
+.cal .dow { font-size: .6875rem; color: var(--muted); font-weight: 600; padding-bottom: 4px; }
+.cal button { aspect-ratio: 1; max-width: 100%; border: 0; background: none; border-radius: 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-variant-numeric: tabular-nums; color: var(--ink); }
+.cal button.out { opacity: .4; }
+.cal button.today { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.cal button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.cal .dots { display: flex; gap: 2px; height: 5px; }
+.cal .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--caution-mark); }
+.cal .dots i.pay { background: var(--sage); }
+.cal .dots i.paid { background: var(--muted); }
 
-/* Sheets */
-.overlay { position: fixed; inset: 0; z-index: 20; background: rgba(10, 18, 16, .45); display: flex; align-items: flex-end; justify-content: center; padding-left: max(0px, env(safe-area-inset-left, 0px)); padding-right: max(0px, env(safe-area-inset-right, 0px)); }
-.sheet { background: var(--surface); width: 100%; max-width: 440px; max-height: 88vh; overflow-y: auto; border-radius: 22px 22px 0 0; padding: 18px 18px calc(22px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 14px; }
-.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-size: .88rem; font-weight: 600; z-index: 30; }
+/* Tab bar */
+.tabs { position: sticky; bottom: 0; z-index: 6; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: var(--surface); border: 1px solid var(--line); border-bottom: 0; border-radius: 20px 20px 0 0; padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); }
+.tabs button { border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: .6875rem; font-weight: 600; color: var(--muted); padding: 6px 0; cursor: pointer; border-radius: 12px; min-height: 48px; }
+.tabs button[aria-current="page"] { color: var(--ink); }
+.tabs button[aria-current="page"] svg { color: var(--sage-ink); }
+.fab { position: sticky; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); align-self: flex-end; margin-top: -60px; z-index: 5; box-shadow: var(--shadow); }
 
-/* Brief panel */
-.brief .tag { font-family: var(--font-display); font-size: 2.1rem; font-weight: 700; line-height: 1.05; letter-spacing: -.03em; }
-.brief .lede { color: var(--muted); max-width: 36ch; }
-.pillars { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.pillar { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 12px; display: flex; flex-direction: column; gap: 4px; }
-.pillar b { font-family: var(--font-display); }
-.pillar span { font-size: .82rem; color: var(--muted); }
-.formula { font-size: .86rem; background: var(--surface); border: 1px dashed var(--line); border-radius: var(--r-sm); padding: 12px; display: flex; flex-direction: column; gap: 4px; }
-.formula code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .8rem; }
+/* Sheets and dialogs */
+.overlay { position: fixed; inset: 0; z-index: 20; background: rgba(10, 20, 15, .5); display: flex; align-items: flex-end; justify-content: center; }
+.overlay.center { align-items: center; padding: 16px; }
+.sheet { background: var(--surface); width: 100%; max-width: 430px; max-height: 90vh; overflow-y: auto; border-radius: 24px 24px 0 0; padding: var(--s5) max(var(--s5), env(safe-area-inset-right, 0px)) calc(var(--s6) + env(safe-area-inset-bottom, 0px)) max(var(--s5), env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: var(--s4); }
+.overlay.center .sheet { border-radius: 20px; max-width: 380px; padding-bottom: var(--s5); }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); }
+.sheet form { display: flex; flex-direction: column; gap: var(--s4); }
+.toast { position: fixed; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: max-content; max-width: min(400px, calc(100vw - 32px)); background: var(--ink); color: var(--bg); padding: 10px 12px 10px 16px; border-radius: 14px; font-size: .875rem; font-weight: 550; z-index: 40; display: flex; align-items: center; gap: var(--s3); box-shadow: var(--shadow); }
+.toast button { background: none; border: 0; color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 4px; }
 
-@media (prefers-reduced-motion: no-preference) {
-  .pace-fill, .pace-dot, .progress > div { transition: all .35s ease; }
+/* Full-screen flows */
+.flow { display: flex; flex-direction: column; gap: var(--s4); padding: var(--s2) 4px var(--s6); flex: 1; }
+.steps { display: flex; gap: 4px; }
+.steps i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
+.steps i.on { background: var(--sage); }
+.lock { position: fixed; inset: 0; z-index: 50; background: var(--hero); color: var(--hero-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s4); text-align: center; padding: 24px; }
+.handoff { border: 2px dashed var(--line); border-radius: var(--r-card); padding: var(--s4); display: flex; flex-direction: column; gap: var(--s3); }
+.state-pill { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; font-size: .8125rem; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.state-pill.connected { background: var(--sage-soft); color: var(--sage-ink); }
+.state-pill.syncing { background: var(--info-bg); color: var(--ink); }
+.state-pill.failed { background: var(--error-bg); color: var(--error-ink); }
+.state-pill.disconnected { background: var(--surface-2); color: var(--muted); }
+.state-pill.syncing svg { animation: spin 1.2s linear infinite; }
+.receipt { max-width: 140px; border-radius: 8px; border: 1px solid var(--line); }
+.skeleton { height: 14px; border-radius: 7px; background: linear-gradient(90deg, var(--surface-2), var(--line), var(--surface-2)); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* Guide panel */
+.guide .tag { font-size: 2.25rem; font-weight: 700; line-height: 1.05; letter-spacing: -.04em; }
+.guide .lede { color: var(--muted); max-width: 38ch; }
+.flows { display: flex; flex-direction: column; gap: var(--s2); }
+.flow-btn { display: flex; gap: var(--s3); align-items: flex-start; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl); padding: var(--s3); cursor: pointer; color: inherit; width: 100%; }
+.flow-btn:hover { border-color: var(--muted); }
+.flow-btn .k { font-weight: 700; color: var(--sage-ink); width: 18px; flex: none; }
+.flow-btn span { display: block; font-size: .8125rem; color: var(--muted); }
+.formula { font-size: .8125rem; background: var(--surface); border: 1px dashed var(--line); border-radius: var(--r-ctl); padding: var(--s3); display: flex; flex-direction: column; gap: 2px; }
+.formula code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .75rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 </style>
 
 <div class="shell">
-  <aside class="brief" id="brief"></aside>
-
-  <div class="app">
-    <header class="top">
-      <div class="wordmark">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2.4" opacity=".25"/><path d="M12 2a10 10 0 0 1 10 10" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="12" r="3" fill="var(--accent)"/></svg>
-        Pace
-      </div>
-      <div class="spacer"></div>
-      <button class="demo-chip" data-action="about" id="demo-chip">Demo data</button>
-      <button class="icon-btn" data-action="settings" aria-label="Settings" id="settings-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
-      </button>
-    </header>
-
-    <main id="view"></main>
-
-    <nav class="tabs" aria-label="Sections">
-      <button data-tab="home" id="tab-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Today</button>
-      <button data-tab="plan" id="tab-plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h6"/><path d="M17 15l2 2 3-4"/></svg>Plan</button>
-      <button data-tab="ahead" id="tab-ahead"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/></svg>Ahead</button>
-      <button data-tab="progress" id="tab-progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>Goals</button>
-      <button data-tab="accounts" id="tab-accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg>Accounts</button>
-    </nav>
+  <aside class="guide" id="guide" aria-label="Prototype guide"></aside>
+  <div class="app" id="app">
+    <header class="top" id="top"></header>
+    <main id="view" tabindex="-1"></main>
+    <nav class="tabs" id="tabs" aria-label="Main"></nav>
   </div>
 </div>
-
 <div class="overlay" id="overlay" hidden></div>
-<div class="toast" id="toast" role="status" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div class="lock" id="lock" hidden></div>
 
-<script>
-(function () {
-  "use strict";
-
-  // ---------- dates (local, ISO "YYYY-MM-DD") ----------
-  const pad = (n) => String(n).padStart(2, "0");
-  const iso = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
-  const parse = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
-  const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return iso(d); };
-  const addMonths = (s, n) => {
-    const d = parse(s), day = d.getDate();
-    d.setDate(1); d.setMonth(d.getMonth() + n);
-    d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
-    return iso(d);
-  };
-  const daysBetween = (a, b) => Math.round((parse(b) - parse(a)) / 864e5);
-  const todayISO = () => iso(new Date());
-  const FREQ = { weekly: "Weekly", fortnightly: "Fortnightly", monthly: "Monthly", quarterly: "Quarterly", once: "Once" };
-  const step = (s, f) => f === "weekly" ? addDays(s, 7) : f === "fortnightly" ? addDays(s, 14) : f === "monthly" ? addMonths(s, 1) : f === "quarterly" ? addMonths(s, 3) : null;
-  const CYCLE = { weekly: 7, fortnightly: 14, monthly: 30 };
-
-  const fmtDay = (s) => parse(s).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" });
-  const fmtShort = (s) => parse(s).toLocaleDateString("en-AU", { day: "numeric", month: "short" });
-  const fmtMonth = (s) => parse(s).toLocaleDateString("en-AU", { month: "long", year: "numeric" });
-  const relDay = (s) => { const n = daysBetween(todayISO(), s); return n === 0 ? "Today" : n === 1 ? "Tomorrow" : n < 7 ? parse(s).toLocaleDateString("en-AU", { weekday: "long" }) : fmtDay(s); };
-
-  const aud = new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" });
-  const aud0 = new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 });
-  const money = (n) => aud.format(Math.round(n * 100) / 100).replace("-", "−");
-  const money0 = (n) => aud0.format(n).replace("-", "−");
-  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const num = (v) => { const n = parseFloat(String(v).replace(/[^0-9.\-]/g, "")); return Number.isFinite(n) ? n : 0; };
-  const uid = () => Math.random().toString(36).slice(2, 9);
-
-  // ---------- demo data (every record is simulated) ----------
-  function seed() {
-    const T = todayISO();
-    return {
-      v: 2,
-      seededOn: T,
-      person: "Mia",
-      settings: { buffer: 100, dailySpend: 16 },
-      income: { name: "Café shifts", freq: "fortnightly", next: addDays(T, 6), variable: true, hours: 38, rate: 26.4 },
-      accounts: [
-        { id: "a1", name: "Everyday", inst: "Demo Bank", kind: "everyday", balance: 612.4, simulated: true },
-        { id: "a2", name: "Bonus Saver", inst: "Demo Bank", kind: "savings", balance: 1250, simulated: true },
-        { id: "a3", name: "Trip Saver", inst: "Demo Bank", kind: "savings", balance: 380, simulated: true },
-      ],
-      outflows: [
-        { id: "o1", name: "Rent", amount: 185, freq: "weekly", next: addDays(T, 1), kind: "bill" },
-        { id: "o2", name: "Myki top-up", amount: 50, freq: "fortnightly", next: addDays(T, 2), kind: "bill" },
-        { id: "o3", name: "Afterpay instalment", amount: 45, freq: "fortnightly", next: addDays(T, 3), until: addDays(T, 45), kind: "debt", debtId: "d1" },
-        { id: "o4", name: "Phone plan", amount: 35, freq: "monthly", next: addDays(T, 4), kind: "bill" },
-        { id: "o5", name: "Auto-save: Emergency fund", amount: 20, freq: "weekly", next: addDays(T, 4), kind: "saving", goalId: "g1" },
-        { id: "o6", name: "Gym", amount: 19.95, freq: "fortnightly", next: addDays(T, 9), kind: "bill" },
-        { id: "o7", name: "Electricity", amount: 168.4, freq: "quarterly", next: addDays(T, 11), kind: "bill" },
-        { id: "o8", name: "Spotify", amount: 13.99, freq: "monthly", next: addDays(T, 12), kind: "bill" },
-      ],
-      goals: [
-        { id: "g1", name: "Emergency fund", target: 2000, accountId: "a2", perPay: 20 },
-        { id: "g2", name: "Japan trip", target: 2400, accountId: "a3", perPay: 40, by: addMonths(T, 8) },
-      ],
-      debts: [
-        { id: "d1", name: "Afterpay", balance: 180, note: "4 fortnightly instalments left", simulated: true },
-        { id: "d2", name: "HECS-HELP", balance: 14320, note: "Repaid through tax once your income passes the threshold. No monthly bill.", simulated: true },
-      ],
-      investments: [{ id: "i1", name: "Micro-investing", inst: "Demo Invest", balance: 412.6, simulated: true }],
-      plan: { extraDebt: 0, spending: 200 },
-      tx: [
-        { id: "t1", date: addDays(T, -7), label: "Woolworths", cat: "Groceries", amount: 64.2 },
-        { id: "t2", date: addDays(T, -6), label: "Campus café", cat: "Eating out", amount: 5.5 },
-        { id: "t3", date: addDays(T, -5), label: "Uber", cat: "Transport", amount: 18.9 },
-        { id: "t4", date: addDays(T, -3), label: "Kmart", cat: "Shopping", amount: 32 },
-        { id: "t5", date: addDays(T, -2), label: "Lunch with Sam", cat: "Eating out", amount: 14.5 },
-        { id: "t6", date: addDays(T, -1), label: "Aldi", cat: "Groceries", amount: 41.35 },
-      ],
-    };
-  }
-
-  const KEY = "pace-prototype-v2";
-  let S;
-  try { S = JSON.parse(localStorage.getItem(KEY)); } catch (e) { S = null; }
-  if (!S || S.v !== 2) S = seed();
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
-
-  // Keep schedules current if the demo was opened on an earlier day.
-  function roll() {
-    const T = todayISO();
-    const L = CYCLE[S.income.freq];
-    while (S.income.next <= T) S.income.next = addDays(S.income.next, L);
-    S.outflows = S.outflows.filter((o) => (o.freq !== "once" || o.next >= T) && (!o.until || o.until >= T));
-    for (const o of S.outflows) while (o.next < T) o.next = step(o.next, o.freq);
-  }
-
-  // ---------- core money logic ----------
-  const acct = (id) => S.accounts.find((a) => a.id === id);
-  const payAmount = () => S.income.variable ? S.income.hours * S.income.rate : S.income.amount;
-
-  function expand(items, from, to) {
-    const out = [];
-    for (const it of items) {
-      let d = it.next, guard = 0;
-      while (d && d < to && (!it.until || d <= it.until) && guard++ < 400) {
-        if (d >= from) out.push({ date: d, item: it, amount: it.amount });
-        if (it.freq === "once") break;
-        d = step(d, it.freq);
-      }
-    }
-    return out.sort((a, b) => a.date.localeCompare(b.date));
-  }
-
-  function compute(extraSpend) {
-    roll();
-    const T = todayISO();
-    const L = CYCLE[S.income.freq];
-    const nextPay = S.income.next;
-    const lastPay = addDays(nextPay, -L);
-    const days = daysBetween(T, nextPay);
-    const spendable = S.accounts.filter((a) => a.kind === "everyday").reduce((s, a) => s + a.balance, 0);
-    const due = expand(S.outflows, T, nextPay);
-    const bills = due.filter((d) => d.item.kind !== "saving");
-    const savings = due.filter((d) => d.item.kind === "saving");
-    const billTotal = bills.reduce((s, d) => s + d.amount, 0);
-    const saveTotal = savings.reduce((s, d) => s + d.amount, 0);
-    const safe = spendable - billTotal - saveTotal - S.settings.buffer - (extraSpend || 0);
-    const perDay = safe / days;
-    const spent = S.tx.filter((t) => t.date >= lastPay && t.date <= T).reduce((s, t) => s + t.amount, 0) + (extraSpend || 0);
-    const timeUsed = (L - days) / L;
-    const moneyStart = safe + spent;
-    const moneyUsed = moneyStart > 0 ? Math.min(1, Math.max(0, spent / moneyStart)) : 1;
-    const status = safe < 0 ? "short" : perDay < 12 ? "tight" : "ok";
-    const fc = forecast(spendable - (extraSpend || 0), 42);
-    return { T, L, nextPay, lastPay, days, spendable, due, bills, savings, billTotal, saveTotal, safe, perDay, spent, timeUsed, moneyUsed, status, fc };
-  }
-
-  // Day-by-day projection of the everyday account.
-  function forecast(start, horizon) {
-    const T = todayISO();
-    const end = addDays(T, horizon);
-    const L = CYCLE[S.income.freq];
-    const events = {};
-    const push = (d, e) => (events[d] = events[d] || []).push(e);
-    for (const o of expand(S.outflows, T, end)) push(o.date, { name: o.item.name, amount: -o.amount, kind: o.item.kind });
-    const goalsPerPay = S.goals.reduce((s, g) => s + (num(g.perPay) || 0), 0) + num(S.plan.extraDebt);
-    for (let d = S.income.next; d < end; d = addDays(d, L)) {
-      push(d, { name: S.income.name, amount: payAmount(), kind: "income" });
-      if (goalsPerPay > 0) push(d, { name: "Payday transfers to goals", amount: -goalsPerPay, kind: "saving" });
-    }
-    const points = [];
-    let bal = start;
-    for (let i = 0; i < horizon; i++) {
-      const d = addDays(T, i);
-      if (i > 0) bal -= d < S.income.next ? S.settings.dailySpend : num(S.plan.spending) / L;
-      for (const e of events[d] || []) bal += e.amount;
-      points.push({ d, bal, events: events[d] || [] });
-    }
-    let low = points[0];
-    for (const p of points) if (p.bal < low.bal) low = p;
-    const firstNeg = points.find((p) => p.bal < 0);
-    const firstBelowBuffer = points.find((p) => p.bal < S.settings.buffer);
-    return { points, low, firstNeg, firstBelowBuffer };
-  }
-
-  // ---------- rendering ----------
-  const view = document.getElementById("view");
-  let tab = "home";
-  try { tab = localStorage.getItem("pace-tab") || "home"; } catch (e) {}
-  if (/^#(home|plan|ahead|progress|accounts)$/.test(location.hash)) tab = location.hash.slice(1);
-
-  function badgeFor(kind) {
-    const label = { bill: "Bill", debt: "Debt", saving: "Save", income: "Pay" }[kind] || "";
-    return `<span class="badge ${kind}">${label}</span>`;
-  }
-  function amountHTML(n) {
-    const [d, c] = money(Math.abs(n)).split(".");
-    return `${n < 0 ? "−" : ""}${d}<span class="cents">.${c}</span>`;
-  }
-
-  function render() {
-    const C = compute();
-    document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-current", b.dataset.tab === tab ? "page" : "false"));
-    view.innerHTML = ({ home: renderHome, plan: renderPlan, ahead: renderAhead, progress: renderProgress, accounts: renderAccounts })[tab](C);
-    renderBrief(C);
-    if (tab === "plan") updatePlan();
-    save();
-  }
-
-  function forecastAlert(fc) {
-    if (fc.firstNeg) {
-      const cause = fc.firstNeg.events.filter((e) => e.amount < 0).map((e) => e.name)[0];
-      return `<div class="alert bad"><span class="mark">!</span><div><b>Shortfall on ${fmtDay(fc.firstNeg.d)}</b>Your everyday account could reach ${money(fc.low.bal)} by ${fmtShort(fc.low.d)}${cause ? ` when ${esc(cause)} comes out` : ""}. Move some savings, trim spending, or pick up a shift.</div></div>`;
-    }
-    if (fc.firstBelowBuffer) {
-      const cause = fc.low.events.filter((e) => e.amount < 0).map((e) => e.name)[0];
-      return `<div class="alert warn"><span class="mark">!</span><div><b>Heads up for ${fmtDay(fc.low.d)}</b>Your balance could dip to ${money(fc.low.bal)}, below your ${money0(S.settings.buffer)} buffer${cause ? `, around when ${esc(cause)} is due` : ""}.</div></div>`;
-    }
-    return `<div class="alert good"><span class="mark">✓</span><div><b>Clear for the next 6 weeks</b>Your balance stays above your buffer. The lowest point is ${money(fc.low.bal)} on ${fmtShort(fc.low.d)}.</div></div>`;
-  }
-
-  function paceBlock(C) {
-    const t = Math.round(C.timeUsed * 100), m = Math.round(C.moneyUsed * 100);
-    const onPace = C.moneyUsed <= C.timeUsed + 0.05;
-    const note = C.safe < 0
-      ? "Your bills before payday are more than you have. Check the Ahead tab."
-      : onPace
-        ? `You've used ${m}% of your spending money with ${t}% of the ${C.L === 14 ? "fortnight" : "cycle"} gone. You're on pace.`
-        : `You've used ${m}% of your spending money but only ${t}% of the ${C.L === 14 ? "fortnight" : "cycle"} has passed. Slow down a little.`;
-    return `<div class="pace" aria-label="Spending pace">
-      <div class="pace-track">
-        <div class="pace-rail"></div>
-        <div class="pace-fill" style="width:${m}%"></div>
-        <div class="pace-today" style="left:${t}%" title="Today"></div>
-        <div class="pace-dot" style="left:${m}%" title="Spending used"></div>
-      </div>
-      <div class="pace-labels"><span>Payday ${fmtShort(C.lastPay)}</span><span>Next payday ${fmtShort(C.nextPay)}</span></div>
-      <p class="pace-note">${note}</p>
-    </div>`;
-  }
-
-  function renderHome(C) {
-    const label = C.status === "short" ? "Shortfall before payday" : C.status === "tight" ? "Tight until payday" : "On track";
-    const perDay = C.safe > 0 ? `${money(C.perDay)} a day for ${C.days} day${C.days === 1 ? "" : "s"}` : `${C.days} day${C.days === 1 ? "" : "s"} to go`;
-    const recent = S.tx.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
-    return `
-      <section class="card hero ${C.status}" aria-live="polite">
-        <span class="eyebrow">Safe to spend until payday</span>
-        <div class="hero-amount num">${amountHTML(C.safe)}</div>
-        <p class="hero-sub">${perDay} · Payday ${C.days === 1 ? "tomorrow" : "on " + fmtDay(C.nextPay)}</p>
-        <span class="status-pill">${label}</span>
-        ${paceBlock(C)}
-      </section>
-
-      <section class="card">
-        <div class="card-head"><h2>How we worked it out</h2><span class="chip demo">Simulated</span></div>
-        <div class="rows">
-          <div class="row"><div class="grow"><div class="title">In your everyday account</div><div class="sub">Demo Bank · Everyday</div></div><div class="amt">${money(C.spendable)}</div></div>
-          <div class="row"><div class="grow"><div class="title">Bills and debts before payday</div><div class="sub">${C.bills.length} payment${C.bills.length === 1 ? "" : "s"} due</div></div><div class="amt">−${money(C.billTotal)}</div></div>
-          <div class="row"><div class="grow"><div class="title">Savings commitments</div><div class="sub">${C.savings.length ? C.savings.map((s) => esc(s.item.name.replace("Auto-save: ", ""))).join(", ") : "None before payday"}</div></div><div class="amt">−${money(C.saveTotal)}</div></div>
-          <div class="row"><div class="grow"><div class="title">Your buffer</div><div class="sub">Kept aside for surprises</div></div><div class="amt">−${money(S.settings.buffer)}</div></div>
-          <div class="row total"><div class="grow">Safe to spend</div><div class="amt">${money(C.safe)}</div></div>
-        </div>
-      </section>
-
-      ${forecastAlert(C.fc)}
-
-      <section class="card">
-        <div class="card-head"><h2>Thinking of buying something?</h2></div>
-        <label class="field" for="whatif">Enter a price to see what it does to your week
-          <div class="money-input"><span>$</span><input class="input num" id="whatif" inputmode="decimal" placeholder="80.00" autocomplete="off"></div>
-        </label>
-        <div id="whatif-out" class="small muted">Pace will show your new safe-to-spend and daily amount.</div>
-      </section>
-
-      <section class="card">
-        <div class="card-head"><h2>Coming out before payday</h2><span class="muted small num">${money(C.billTotal + C.saveTotal)}</span></div>
-        <div class="rows">
-          ${C.due.length ? C.due.map((d) => `<div class="row">${badgeFor(d.item.kind)}<div class="grow"><div class="title">${esc(d.item.name)}</div><div class="sub">${relDay(d.date)} · ${FREQ[d.item.freq]}</div></div><div class="amt">${money(d.amount)}</div></div>`).join("") : `<p class="muted">Nothing else is due before payday.</p>`}
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card-head"><h2>Recent spending</h2><span class="muted small num">${money(C.spent)} this ${C.L === 14 ? "fortnight" : "cycle"}</span></div>
-        <div class="rows">
-          ${recent.map((t) => `<div class="row"><span class="badge">${esc(t.cat.slice(0, 3))}</span><div class="grow"><div class="title">${esc(t.label)}</div><div class="sub">${relDay(t.date)} · ${esc(t.cat)}</div></div><div class="amt">−${money(t.amount)}</div></div>`).join("") || `<p class="muted">No spending logged yet.</p>`}
-        </div>
-      </section>
-
-      <button class="btn primary fab" data-action="log" id="fab-log"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Log spending</button>
-    `;
-  }
-
-  function updateWhatIf(v) {
-    const out = document.getElementById("whatif-out");
-    const amt = num(v);
-    if (!amt) { out.className = "small muted"; out.textContent = "Pace will show your new safe-to-spend and daily amount."; return; }
-    const before = compute();
-    const C = compute(amt);
-    roll();
-    let verdict, cls;
-    if (C.safe < 0) { verdict = `That would leave you ${money(-C.safe)} short before payday.`; cls = "alert bad"; }
-    else if (C.perDay < 12) { verdict = `Doable, but tight: ${money(C.perDay)} a day until payday.`; cls = "alert warn"; }
-    else if (C.fc.firstNeg && !before.fc.firstNeg) { verdict = `You can cover it before payday, but it leads to a shortfall on ${fmtShort(C.fc.firstNeg.d)}.`; cls = "alert warn"; }
-    else { verdict = `You can afford it. You'd have ${money(C.safe)} left, or ${money(C.perDay)} a day.`; cls = "alert good"; }
-    out.className = cls;
-    out.innerHTML = `<span class="mark">${cls === "alert good" ? "✓" : "!"}</span><div>${verdict}</div>`;
-  }
-
-  function renderPlan(C) {
-    const L = C.L;
-    const nextCycle = expand(S.outflows, C.nextPay, addDays(C.nextPay, L));
-    const fixed = nextCycle.filter((d) => d.item.kind !== "saving");
-    const autoSave = nextCycle.filter((d) => d.item.kind === "saving");
-    const fixedTotal = fixed.reduce((s, d) => s + d.amount, 0) + autoSave.reduce((s, d) => s + d.amount, 0);
-    return `
-      <section class="card">
-        <span class="eyebrow">Plan your next pay</span>
-        <h2 style="font-size:1.35rem">Give every dollar a job</h2>
-        <p class="muted small">Before payday lands, decide what it needs to cover. Bills come first, then goals, then spending money.</p>
-      </section>
-
-      <section class="card">
-        <div class="card-head"><h3>${esc(S.income.name)} · ${fmtDay(C.nextPay)}</h3><span class="chip warn">Changes each pay</span></div>
-        <label class="field" for="hours">Shifts this fortnight: <span id="hours-out" class="num">${S.income.hours} hours × ${money(S.income.rate)} after tax</span>
-          <input type="range" id="hours" min="0" max="60" step="1" value="${S.income.hours}">
-        </label>
-        <div class="card-head"><span class="muted">Expected take-home</span><span class="num" style="font-family:var(--font-display);font-weight:700;font-size:1.4rem" id="pay-out">${money(payAmount())}</span></div>
-      </section>
-
-      <section class="card">
-        <div class="card-head"><h3>Bills and commitments</h3><span class="num amt" id="fixed-out">${money(fixedTotal)}</span></div>
-        <p class="small muted">Due between ${fmtShort(C.nextPay)} and ${fmtShort(addDays(C.nextPay, L - 1))}. These are set aside automatically.</p>
-        <div class="rows">
-          ${nextCycle.map((d) => `<div class="row">${badgeFor(d.item.kind)}<div class="grow"><div class="title">${esc(d.item.name)}</div><div class="sub">${fmtDay(d.date)}</div></div><div class="amt">${money(d.amount)}</div></div>`).join("")}
-        </div>
-        <button class="btn ghost" data-action="add-bill" id="add-bill-btn">Add a bill</button>
-      </section>
-
-      <section class="card">
-        <h3>Goals and extra debt payments</h3>
-        <div class="rows">
-          ${S.goals.map((g) => `<div class="row"><span class="badge saving">Goal</span><div class="grow"><div class="title">${esc(g.name)}</div><div class="sub">${money0(acct(g.accountId).balance)} of ${money0(g.target)}</div></div><div class="money-input inline-money"><span>$</span><input class="input num" data-goal="${g.id}" id="goal-${g.id}" inputmode="decimal" value="${num(g.perPay) || ""}" placeholder="0" aria-label="${esc(g.name)} per pay"></div></div>`).join("")}
-          <div class="row"><span class="badge debt">Debt</span><div class="grow"><div class="title">Extra off Afterpay</div><div class="sub">On top of the scheduled instalment</div></div><div class="money-input inline-money"><span>$</span><input class="input num" data-plan="extraDebt" id="plan-extraDebt" inputmode="decimal" value="${num(S.plan.extraDebt) || ""}" placeholder="0" aria-label="Extra debt payment"></div></div>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card-head"><h3>Spending money</h3><span class="muted small" id="spend-day">${money(num(S.plan.spending) / L)} a day</span></div>
-        <div class="row" style="border:0;padding:0"><div class="grow muted small">Groceries, transport, eating out and fun for the fortnight.</div><div class="money-input inline-money"><span>$</span><input class="input num" data-plan="spending" id="plan-spending" inputmode="decimal" value="${num(S.plan.spending) || ""}" placeholder="0" aria-label="Spending money"></div></div>
-      </section>
-
-      <div class="assign" id="assign"></div>
-      <button class="btn block" data-action="assign-rest" id="assign-rest">Put what's left into spending money</button>
-    `;
-  }
-
-  function planNumbers() {
-    const C = compute();
-    const L = C.L;
-    const nextCycle = expand(S.outflows, C.nextPay, addDays(C.nextPay, L));
-    const fixed = nextCycle.reduce((s, d) => s + d.amount, 0);
-    const goals = S.goals.reduce((s, g) => s + num(g.perPay), 0) + num(S.plan.extraDebt);
-    const left = payAmount() - fixed - goals - num(S.plan.spending);
-    return { left, fixed, goals, L };
-  }
-
-  function updatePlan() {
-    const P = planNumbers();
-    const el = document.getElementById("assign");
-    if (!el) return;
-    const zero = Math.abs(P.left) < 0.005;
-    el.className = "assign " + (zero ? "zero" : P.left < 0 ? "over" : "");
-    el.innerHTML = zero
-      ? `<div><b>Every dollar has a job</b><div class="small muted">Your plan matches your expected pay.</div></div><span class="big num">${money(0)}</span>`
-      : P.left > 0
-        ? `<div><b>Left to assign</b><div class="small muted">Give these dollars a job before payday.</div></div><span class="big num">${money(P.left)}</span>`
-        : `<div><b>Over-assigned</b><div class="small muted">Your plan needs more than you expect to earn. Lower a goal or spending.</div></div><span class="big num">${money(P.left)}</span>`;
-    document.getElementById("hours-out").textContent = `${S.income.hours} hours × ${money(S.income.rate)} after tax`;
-    document.getElementById("pay-out").textContent = money(payAmount());
-    document.getElementById("spend-day").textContent = `${money(num(S.plan.spending) / P.L)} a day`;
-  }
-
-  function chartSVG(fc) {
-    const W = 340, H = 180, padL = 40, padR = 10, padT = 14, padB = 24;
-    const pts = fc.points;
-    const vals = pts.map((p) => p.bal).concat([0, S.settings.buffer]);
-    let lo = Math.min(...vals), hi = Math.max(...vals);
-    const span = hi - lo || 1;
-    const stepV = [50, 100, 200, 250, 500, 1000, 2000].find((s) => span / s <= 5) || 5000;
-    lo = Math.floor(lo / stepV) * stepV; hi = Math.ceil(hi / stepV) * stepV;
-    const x = (i) => padL + (i / (pts.length - 1)) * (W - padL - padR);
-    const y = (v) => padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB);
-    let grid = "";
-    for (let v = lo; v <= hi + 0.01; v += stepV) {
-      grid += `<line x1="${padL}" x2="${W - padR}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="${v === 0 ? 1.4 : 0.8}"/>`;
-      grid += `<text x="${padL - 6}" y="${y(v) + 3}" text-anchor="end">${money0(v)}</text>`;
-    }
-    let xl = "";
-    pts.forEach((p, i) => { if (i % 7 === 0) xl += `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : "middle"}">${i === 0 ? "Today" : fmtShort(p.d)}</text>`; });
-    const line = pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.bal).toFixed(1)}`).join("");
-    const area = `${line}L${x(pts.length - 1).toFixed(1)},${y(lo).toFixed(1)}L${x(0).toFixed(1)},${y(lo).toFixed(1)}Z`;
-    const paydays = pts.map((p, i) => p.events.some((e) => e.kind === "income") ? `<circle cx="${x(i)}" cy="${y(p.bal)}" r="3.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5"/>` : "").join("");
-    const li = pts.indexOf(fc.low);
-    const lowColor = fc.low.bal < 0 ? "var(--bad)" : fc.low.bal < S.settings.buffer ? "var(--warn)" : "var(--accent)";
-    const labelX = Math.min(Math.max(x(li), padL + 30), W - padR - 30);
-    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Projected everyday balance for the next six weeks. Lowest point ${money(fc.low.bal)} on ${fmtShort(fc.low.d)}.">
-      ${grid}${xl}
-      <path d="${area}" fill="var(--accent)" fill-opacity=".1"/>
-      <line x1="${padL}" x2="${W - padR}" y1="${y(S.settings.buffer)}" y2="${y(S.settings.buffer)}" stroke="var(--warn)" stroke-width="1.2" stroke-dasharray="4 3"/>
-      <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
-      ${paydays}
-      <circle cx="${x(li)}" cy="${y(fc.low.bal)}" r="4.5" fill="${lowColor}" stroke="var(--surface)" stroke-width="1.5"/>
-      <text x="${labelX}" y="${y(fc.low.bal) > (H - padB) - 30 ? y(fc.low.bal) - 9 : y(fc.low.bal) + 16}" text-anchor="middle" style="fill:${lowColor};font-weight:700">Low ${money0(fc.low.bal)}</text>
-    </svg>`;
-  }
-
-  function renderAhead(C) {
-    const fc = C.fc;
-    const upto = addDays(C.T, 28);
-    const groups = fc.points.filter((p) => p.d < upto && p.events.length);
-    return `
-      <section class="card">
-        <div class="card-head"><h2>Next 6 weeks</h2><span class="chip demo">Forecast</span></div>
-        ${chartSVG(fc)}
-        <div class="legend"><span><i></i>Everyday balance</span><span><i class="buf"></i>Buffer ${money0(S.settings.buffer)}</span><span><i class="pay"></i>Payday</span></div>
-        <p class="small muted">Assumes ${money0(S.settings.dailySpend)} a day of spending until payday, then your planned ${money0(num(S.plan.spending))} a ${C.L === 14 ? "fortnight" : "week"}, your scheduled bills, and ${money(payAmount())} each payday.</p>
-      </section>
-      ${forecastAlert(fc)}
-      <section class="card">
-        <h2>Calendar</h2>
-        <div class="rows">
-          ${groups.map((p) => `
-            <div class="day-head"><span>${relDay(p.d)}</span><span class="num">Balance ${money(p.bal)}</span></div>
-            ${p.events.map((e) => `<div class="row">${badgeFor(e.kind)}<div class="grow"><div class="title">${esc(e.name)}</div></div><div class="amt" style="color:${e.amount > 0 ? "var(--good)" : "inherit"}">${e.amount > 0 ? "+" : "−"}${money(Math.abs(e.amount))}</div></div>`).join("")}
-          `).join("")}
-        </div>
-      </section>
-    `;
-  }
-
-  function projectGoal(g) {
-    const saved = acct(g.accountId).balance;
-    const left = g.target - saved;
-    if (left <= 0) return "Reached";
-    const L = CYCLE[S.income.freq];
-    const auto = S.outflows.filter((o) => o.goalId === g.id).reduce((s, o) => s + o.amount * (o.freq === "weekly" ? 2 : o.freq === "fortnightly" ? 1 : o.freq === "monthly" ? 14 / 30 : 0), 0);
-    const perFortnight = num(g.perPay) * (14 / L) + auto;
-    if (perFortnight <= 0) return "Add a contribution to see a date";
-    const date = addDays(todayISO(), Math.ceil(left / perFortnight) * 14);
-    const late = g.by && date > g.by;
-    return `On track for ${fmtMonth(date)}${g.by ? (late ? ` · <span style="color:var(--warn)">after your ${fmtMonth(g.by)} target</span>` : " · ahead of target") : ""}`;
-  }
-
-  function renderProgress() {
-    const cash = S.accounts.reduce((s, a) => s + a.balance, 0);
-    const inv = S.investments.reduce((s, a) => s + a.balance, 0);
-    const debt = S.debts.reduce((s, d) => s + d.balance, 0);
-    return `
-      <section class="card">
-        <span class="eyebrow">Your money in one place</span>
-        <div class="rows">
-          <div class="row"><div class="grow">Cash and savings</div><div class="amt">${money(cash)}</div></div>
-          <div class="row"><div class="grow">Investments</div><div class="amt">${money(inv)}</div></div>
-          <div class="row"><div class="grow">Debts</div><div class="amt">−${money(debt)}</div></div>
-          <div class="row total"><div class="grow">Net position</div><div class="amt">${money(cash + inv - debt)}</div></div>
-        </div>
-        <p class="small muted">Most of your debt is HECS-HELP, which works differently from a loan. See below.</p>
-      </section>
-
-      <section class="card">
-        <div class="card-head"><h2>Savings goals</h2><button class="btn ghost" data-action="add-goal" id="add-goal-btn">New goal</button></div>
-        ${S.goals.map((g) => {
-          const saved = acct(g.accountId).balance, pct = Math.min(100, Math.round((saved / g.target) * 100));
-          return `<div style="display:flex;flex-direction:column;gap:6px">
-            <div class="card-head"><h3>${esc(g.name)}</h3><span class="num small">${money0(saved)} / ${money0(g.target)}</span></div>
-            <div class="progress" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${esc(g.name)}"><div style="width:${pct}%"></div></div>
-            <p class="small muted">${pct}% · ${projectGoal(g)}</p>
-          </div>`;
-        }).join("")}
-      </section>
-
-      <section class="card">
-        <h2>Debts</h2>
-        <div class="rows">
-          ${S.debts.map((d) => `<div class="row"><span class="badge debt">Debt</span><div class="grow"><div class="title">${esc(d.name)}</div><div class="sub" style="white-space:normal">${esc(d.note)}</div></div><div class="amt">${money(d.balance)}</div></div>`).join("")}
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>Investments</h2>
-        <div class="rows">
-          ${S.investments.map((i) => `<div class="row"><span class="badge">Inv</span><div class="grow"><div class="title">${esc(i.name)}</div><div class="sub">${esc(i.inst)} · Simulated</div></div><div class="amt">${money(i.balance)}</div></div>`).join("")}
-        </div>
-        <p class="small muted">Pace treats investing as a later step: build your buffer and emergency fund first, then invest what you won't need soon.</p>
-      </section>
-    `;
-  }
-
-  function renderAccounts() {
-    const group = (kind, title) => {
-      const list = S.accounts.filter((a) => a.kind === kind);
-      if (!list.length) return "";
-      return `<div class="day-head"><span>${title}</span></div>` + list.map((a) => `<div class="row"><span class="badge">${esc(a.inst.split(" ").map((w) => w[0]).join("").slice(0, 2))}</span><div class="grow"><div class="title">${esc(a.name)}</div><div class="sub">${esc(a.inst)}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="amt">${money(a.balance)}</span>${a.simulated ? `<span class="chip demo">Simulated</span>` : `<span class="chip ok">Connected</span>`}</div></div>`).join("");
-    };
-    return `
-      <div class="alert" style="background:var(--demo-soft)"><span class="mark" style="color:var(--demo)">i</span><div><b>No real bank is connected</b>Every account in this prototype is simulated. Nothing here reads or moves real money.</div></div>
-      <section class="card">
-        <div class="card-head"><h2>Accounts</h2></div>
-        <div class="rows">${group("everyday", "Everyday")}${group("savings", "Savings")}</div>
-        <button class="btn primary" data-action="connect" id="connect-btn">Connect a bank</button>
-      </section>
-      <section class="card">
-        <h2>How Pace reads your bank</h2>
-        <p class="small">In the full product, you'll connect banks through Australia's Consumer Data Right (open banking). Access is read-only. You choose which accounts to share and for how long, and you can withdraw consent at any time.</p>
-        <p class="small muted">Pace never asks for your banking password.</p>
-      </section>
-    `;
-  }
-
-  function renderBrief(C) {
-    document.getElementById("brief").innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <span class="eyebrow">Product prototype · ${fmtDay(C.T)}</span>
-        <p class="tag">Know your money.<br>Control your pace.</p>
-        <p class="lede">Know what you have, what you owe, and what you can safely spend before your next payday.</p>
-      </div>
-      <div class="pillars">
-        <div class="pillar"><b>Understand</b><span>Accounts, income and spending in one place</span></div>
-        <div class="pillar"><b>Prepare</b><span>Rent, tuition, bills and payday</span></div>
-        <div class="pillar"><b>Protect</b><span>A buffer and early shortfall warnings</span></div>
-        <div class="pillar"><b>Progress</b><span>Savings goals and habits</span></div>
-      </div>
-      <div class="formula">
-        <b>Safe to spend</b>
-        <code>everyday balance</code>
-        <code>− bills and debts due before payday</code>
-        <code>− savings commitments before payday</code>
-        <code>− buffer</code>
-        <span class="muted">Shown as a total and a daily amount until the next pay.</span>
-      </div>
-      <p class="small muted">Demo persona: ${esc(S.person)}, a uni student in Melbourne with casual café shifts paid fortnightly. All data is simulated.</p>
-    `;
-  }
-
-  // ---------- sheets ----------
-  const overlay = document.getElementById("overlay");
-  function openSheet(html) {
-    overlay.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
-    overlay.hidden = false;
-    const first = overlay.querySelector("input, select, button.primary");
-    if (first) first.focus();
-  }
-  function closeSheet() { overlay.hidden = true; overlay.innerHTML = ""; }
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeSheet(); });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !overlay.hidden) closeSheet(); });
-  const sheetHead = (t) => `<div class="sheet-head"><h2>${t}</h2><button class="icon-btn" data-action="close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`;
-
-  let toastTimer;
-  function toast(msg) {
-    const t = document.getElementById("toast");
-    t.textContent = msg; t.hidden = false;
-    clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), 2400);
-  }
-
-  const CATS = ["Groceries", "Eating out", "Transport", "Shopping", "Fun", "Health", "Other"];
-
-  const sheets = {
-    log() {
-      openSheet(`${sheetHead("Log spending")}
-        <form id="log-form" class="card" style="border:0;padding:0">
-          <label class="field" for="log-amt">Amount<div class="money-input"><span>$</span><input class="input num" id="log-amt" inputmode="decimal" required placeholder="0.00" autocomplete="off"></div></label>
-          <label class="field" for="log-label">What was it?<input class="input" id="log-label" maxlength="40" placeholder="e.g. Coles" autocomplete="off"></label>
-          <div class="field">Category<div class="seg" id="log-cat">${CATS.map((c, i) => `<button type="button" data-cat="${c}" aria-pressed="${i === 0}">${c}</button>`).join("")}</div></div>
-          <p class="small muted">Comes out of your simulated Everyday account.</p>
-          <p class="small" id="log-err" style="color:var(--bad)"></p>
-          <button class="btn primary block" type="submit">Save</button>
-        </form>`);
-    },
-    "add-bill"() {
-      openSheet(`${sheetHead("Add a bill")}
-        <form id="bill-form" class="card" style="border:0;padding:0">
-          <label class="field" for="bill-name">Name<input class="input" id="bill-name" maxlength="40" required placeholder="e.g. Tuition instalment" autocomplete="off"></label>
-          <label class="field" for="bill-amt">Amount<div class="money-input"><span>$</span><input class="input num" id="bill-amt" inputmode="decimal" required placeholder="0.00" autocomplete="off"></div></label>
-          <label class="field" for="bill-date">Next due<input class="input" type="date" id="bill-date" required value="${addDays(todayISO(), 7)}"></label>
-          <label class="field" for="bill-freq">Repeats<select class="input" id="bill-freq">${Object.entries(FREQ).map(([k, v]) => `<option value="${k}" ${k === "monthly" ? "selected" : ""}>${v}</option>`).join("")}</select></label>
-          <p class="small" id="bill-err" style="color:var(--bad)"></p>
-          <button class="btn primary block" type="submit">Add bill</button>
-        </form>`);
-    },
-    "add-goal"() {
-      openSheet(`${sheetHead("New savings goal")}
-        <form id="goal-form" class="card" style="border:0;padding:0">
-          <label class="field" for="goal-name">Goal<input class="input" id="goal-name" maxlength="40" required placeholder="e.g. New laptop" autocomplete="off"></label>
-          <label class="field" for="goal-target">Target<div class="money-input"><span>$</span><input class="input num" id="goal-target" inputmode="decimal" required placeholder="1500" autocomplete="off"></div></label>
-          <label class="field" for="goal-per">Put aside each payday<div class="money-input"><span>$</span><input class="input num" id="goal-per" inputmode="decimal" placeholder="25" autocomplete="off"></div></label>
-          <p class="small muted">Pace will create a simulated savings account for it.</p>
-          <p class="small" id="goal-err" style="color:var(--bad)"></p>
-          <button class="btn primary block" type="submit">Create goal</button>
-        </form>`);
-    },
-    connect() {
-      openSheet(`${sheetHead("Connect a bank")}
-        <div class="alert" style="background:var(--demo-soft)"><span class="mark" style="color:var(--demo)">i</span><div><b>Not available in this prototype</b>Real bank connections are switched off. You can add a simulated account to see how a connected account would look.</div></div>
-        <div class="rows">
-          <div class="row"><span class="badge saving">1</span><div class="grow small">Choose your bank and the accounts to share.</div></div>
-          <div class="row"><span class="badge saving">2</span><div class="grow small">Approve read-only access in your bank's own app.</div></div>
-          <div class="row"><span class="badge saving">3</span><div class="grow small">Pace imports balances and transactions and spots your bills and paydays.</div></div>
-        </div>
-        <button class="btn primary block" data-action="add-sim" id="add-sim">Add a simulated account</button>`);
-    },
-    settings() {
-      openSheet(`${sheetHead("Settings")}
-        <form id="settings-form" class="card" style="border:0;padding:0">
-          <label class="field" for="set-buffer">Buffer to keep aside<div class="money-input"><span>$</span><input class="input num" id="set-buffer" inputmode="decimal" value="${S.settings.buffer}"></div></label>
-          <label class="field" for="set-daily">Expected spending per day until payday<div class="money-input"><span>$</span><input class="input num" id="set-daily" inputmode="decimal" value="${S.settings.dailySpend}"></div></label>
-          <label class="field" for="set-rate">Hourly pay after tax<div class="money-input"><span>$</span><input class="input num" id="set-rate" inputmode="decimal" value="${S.income.rate}"></div></label>
-          <label class="field" for="set-freq">Paid<select class="input" id="set-freq">${["weekly", "fortnightly"].map((f) => `<option value="${f}" ${S.income.freq === f ? "selected" : ""}>${FREQ[f]}</option>`).join("")}</select></label>
-          <button class="btn primary block" type="submit">Save settings</button>
-        </form>
-        <button class="btn danger block" data-action="reset" id="reset-btn">Reset demo data</button>`);
-    },
-    about() {
-      openSheet(`${sheetHead("About this prototype")}
-        <p>Pace is a budgeting app for students and young workers in Australia. It answers one question: how much can I safely spend before my next payday?</p>
-        <div class="alert" style="background:var(--demo-soft)"><span class="mark" style="color:var(--demo)">i</span><div><b>Everything here is simulated</b>Accounts, transactions and balances are demo data for a made-up student named ${esc(S.person)}. No bank is connected.</div></div>
-        <p class="small muted">Your changes are saved in this browser only. Use Settings → Reset demo data to start again.</p>`);
-    },
-  };
-
-  overlay.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const f = e.target;
-    if (f.id === "log-form") {
-      const amt = num(document.getElementById("log-amt").value);
-      if (amt <= 0) { document.getElementById("log-err").textContent = "Enter an amount above $0."; return; }
-      const cat = overlay.querySelector('#log-cat [aria-pressed="true"]').dataset.cat;
-      const label = document.getElementById("log-label").value.trim() || cat;
-      S.tx.push({ id: uid(), date: todayISO(), label, cat, amount: Math.round(amt * 100) / 100 });
-      acct("a1").balance = Math.round((acct("a1").balance - amt) * 100) / 100;
-      closeSheet(); render();
-      toast(`Logged ${money(amt)}. Safe to spend is now ${money(compute().safe)}.`);
-    } else if (f.id === "bill-form") {
-      const name = document.getElementById("bill-name").value.trim();
-      const amt = num(document.getElementById("bill-amt").value);
-      const date = document.getElementById("bill-date").value;
-      if (!name || amt <= 0 || !date) { document.getElementById("bill-err").textContent = "Add a name, an amount above $0 and a due date."; return; }
-      if (date < todayISO()) { document.getElementById("bill-err").textContent = "Choose today or a later date."; return; }
-      S.outflows.push({ id: uid(), name, amount: amt, freq: document.getElementById("bill-freq").value, next: date, kind: "bill" });
-      closeSheet(); render(); toast(`Added ${name}`);
-    } else if (f.id === "goal-form") {
-      const name = document.getElementById("goal-name").value.trim();
-      const target = num(document.getElementById("goal-target").value);
-      if (!name || target <= 0) { document.getElementById("goal-err").textContent = "Add a name and a target above $0."; return; }
-      const aid = uid();
-      S.accounts.push({ id: aid, name: name + " Saver", inst: "Demo Bank", kind: "savings", balance: 0, simulated: true });
-      S.goals.push({ id: uid(), name, target, accountId: aid, perPay: num(document.getElementById("goal-per").value) });
-      closeSheet(); render(); toast(`Created ${name}`);
-    } else if (f.id === "settings-form") {
-      S.settings.buffer = Math.max(0, num(document.getElementById("set-buffer").value));
-      S.settings.dailySpend = Math.max(0, num(document.getElementById("set-daily").value));
-      S.income.rate = Math.max(0, num(document.getElementById("set-rate").value));
-      const freq = document.getElementById("set-freq").value;
-      if (freq !== S.income.freq) { S.income.freq = freq; S.income.hours = freq === "weekly" ? Math.round(S.income.hours / 2) : S.income.hours * 2; }
-      closeSheet(); render(); toast("Settings saved");
-    }
-  });
-
-  // ---------- events ----------
-  document.addEventListener("click", (e) => {
-    const t = e.target.closest("[data-tab]");
-    if (t) {
-      tab = t.dataset.tab;
-      try { localStorage.setItem("pace-tab", tab); } catch (err) {}
-      render(); window.scrollTo(0, 0); return;
-    }
-    const cat = e.target.closest("#log-cat button");
-    if (cat) { overlay.querySelectorAll("#log-cat button").forEach((b) => b.setAttribute("aria-pressed", b === cat)); return; }
-    const a = e.target.closest("[data-action]");
-    if (!a) return;
-    const act = a.dataset.action;
-    if (act === "close") return closeSheet();
-    if (sheets[act]) return sheets[act]();
-    if (act === "assign-rest") {
-      const P = planNumbers();
-      S.plan.spending = Math.max(0, Math.round((num(S.plan.spending) + P.left) * 100) / 100);
-      render(); return;
-    }
-    if (act === "add-sim") {
-      const n = S.accounts.filter((x) => x.inst === "Simulated Credit Union").length + 1;
-      S.accounts.push({ id: uid(), name: "Savings " + n, inst: "Simulated Credit Union", kind: "savings", balance: 150, simulated: true });
-      closeSheet(); render(); toast("Simulated account added"); return;
-    }
-    if (act === "reset") {
-      if (a.dataset.confirm !== "1") { a.dataset.confirm = "1"; a.textContent = "Tap again to reset everything"; return; }
-      S = seed(); closeSheet(); render(); toast("Demo data reset"); return;
-    }
-  });
-
-  view.addEventListener("input", (e) => {
-    if (e.target.id === "whatif") return updateWhatIf(e.target.value);
-    if (e.target.id === "hours") { S.income.hours = Number(e.target.value); save(); return updatePlan(); }
-    if (e.target.dataset.goal) { S.goals.find((g) => g.id === e.target.dataset.goal).perPay = num(e.target.value); save(); return updatePlan(); }
-    if (e.target.dataset.plan) { S.plan[e.target.dataset.plan] = num(e.target.value); save(); return updatePlan(); }
-  });
-  render();
-})();
-</script>
+<script src="core.js"></script>
+<script src="seed.js"></script>
+<script src="provider.js"></script>
+<script src="app.js"></script>

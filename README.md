@@ -1,6 +1,6 @@
 # Budget
 
-> **Pace prototype:** `pace/index.html` is the interactive mobile prototype for Pace ("Know your money. Control your pace."). It shows how much you can safely spend before your next payday, a plan to give every dollar a job, a 6-week cash-flow forecast, and savings goals and debts. All bank data in it is simulated. The rest of this README covers the original simple budget app.
+> **Pace prototype:** see [`pace/README.md`](pace/README.md). The rest of this README covers the original simple budget app.
 
 A simple personal budget app that runs entirely in your browser. No accounts, no server, and no dependencies.
 
