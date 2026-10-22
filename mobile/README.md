@@ -1,14 +1,14 @@
-# Pace for Android
+# Pace for Android and iOS
 
-This wraps the Pace prototype (`../pace`) as an Android app using [Capacitor](https://capacitorjs.com). The screens and money logic are the same code as the web prototype. Capacitor packages it into a native Android app that works offline.
+This wraps the Pace prototype (`../pace`) as Android and iOS apps using [Capacitor](https://capacitorjs.com). The screens and money logic are the same code as the web prototype. Capacitor packages it into native apps that work offline.
 
-- **App ID:** `com.bogatimahesh.pace`. Change it in `capacitor.config.json` and `android/app/build.gradle` **before the first upload to Play**. After that it can never change.
-- **Minimum Android:** 7.0 (API 24). **Target:** API 36.
+- **App ID / bundle ID:** `com.bogatimahesh.pace`. To change it, edit `capacitor.config.json`, `android/app/build.gradle` and `PRODUCT_BUNDLE_IDENTIFIER` in `ios/App/App.xcodeproj`. Do this **before the first upload to either store**. After that it can never change.
+- **Minimum Android:** 7.0 (API 24), targeting API 36. **Minimum iOS:** 15, iPhone only.
 - **The store build differs from the web prototype in three ways:** it opens on first-time setup instead of sample data, it bundles the Inter font so it needs no internet, and the Android back button steps back through screens and sheets before leaving the app.
 
 ## Build it
 
-GitHub builds it automatically. Every push that changes `pace/` or `mobile/` runs `.github/workflows/android.yml`. Open the run under **Actions** and download `pace-debug-apk` from **Artifacts**.
+GitHub builds it automatically. Every push that changes `pace/` or `mobile/` runs `.github/workflows/mobile.yml`. That builds the Android APK and checks that the iOS app compiles for the simulator. Open the run under **Actions** and download `pace-debug-apk` from **Artifacts**.
 
 To build on your own computer, you need Node 22, JDK 21 and Android Studio (or the Android SDK):
 
@@ -52,6 +52,45 @@ Google requires new personal developer accounts to run a **closed test with at l
 7. **Apply for production access** from the Play Console dashboard, then roll out.
 
 Each workflow run uses the GitHub run number as the `versionCode`, so every upload is higher than the last.
+
+## Apple App Store
+
+There's no 12-tester rule like Google's, but there are three requirements:
+
+- **An Apple Developer Program membership.** It costs US$99 a year (about A$149). Individuals verify their identity, which usually takes a day or two. Organisations need a D-U-N-S number.
+- **A Mac with Xcode,** for signing and uploading. A cloud Mac or a CI service such as Codemagic or GitHub's macOS runners can do it instead, but using your own Mac is simplest the first time.
+- **App Review.** Apple reviews every release. Most reviews finish within a day or two.
+
+Steps:
+
+1. **Enrol** at [developer.apple.com/programs](https://developer.apple.com/programs/).
+2. **Open the project on a Mac:**
+   ```sh
+   git clone https://github.com/bogatimahesh10-sudo/infant-toddler-digital-portfolio.git
+   cd infant-toddler-digital-portfolio/mobile
+   npm ci
+   npm run sync:ios
+   npx cap open ios
+   ```
+   In Xcode, select the **App** target, then go to **Signing & Capabilities**. Tick **Automatically manage signing** and choose your team. Xcode registers the bundle ID for you.
+3. **Try it on your iPhone.** Plug the phone in, select it as the run destination, and press **Run**.
+4. **Create the app** in [App Store Connect](https://appstoreconnect.apple.com) under **Apps → + → New App**. Choose iOS, use the name from `store/listing.md`, and select the bundle ID `com.bogatimahesh.pace`. The SKU can be anything, for example `pace-001`.
+5. **Upload a build.** In Xcode, set the destination to **Any iOS Device**, then choose **Product → Archive → Distribute App → App Store Connect → Upload**. Raise the build number (`CURRENT_PROJECT_VERSION`) for every upload.
+6. **TestFlight.** Internal testers (up to 100 people on your team) can install straight away. External testers need a short beta review first.
+7. **Fill in the listing:**
+   - **Screenshots:** `store/ios/iphone-*.png`, 1290×2796, which fits the 6.9-inch slot.
+   - **Description:** reuse `store/listing.md`.
+   - **Category:** Finance.
+   - **Privacy policy URL** and **Support URL:** both are required.
+   - **App Privacy:** choose **Data Not Collected**.
+   - **Age rating:** answer the questionnaire. Nothing in Pace raises it.
+   - **Export compliance:** already answered in `Info.plist` (`ITSAppUsesNonExemptEncryption` = NO).
+8. **Submit for review,** then release manually or automatically once it's approved.
+
+Two review risks to deal with before submitting:
+
+- **Guideline 4.2 (minimum functionality).** Apple rejects apps that are just a website in a wrapper. Pace runs fully offline and has real features, which helps. Explain this in the review notes, for example: *"All features work offline on the device. There is no account or server."*
+- **Guideline 2.3 (accurate metadata) and the bank demo.** A "Connect a bank" screen that only simulates a connection may be questioned. It's safer to remove it from store builds until a real provider is in place.
 
 ## Before a public release
 

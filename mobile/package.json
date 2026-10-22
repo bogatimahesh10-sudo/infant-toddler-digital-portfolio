@@ -2,16 +2,18 @@
   "name": "pace-android",
   "version": "0.1.0",
   "private": true,
-  "description": "Android wrapper for the Pace prototype (Capacitor).",
+  "description": "Android and iOS wrapper for the Pace prototype (Capacitor).",
   "scripts": {
     "build:www": "node scripts/build-www.mjs",
     "sync": "npm run build:www && npx cap sync android",
-    "assets": "node scripts/make-assets.mjs"
+    "assets": "node scripts/make-assets.mjs",
+    "sync:ios": "npm run build:www && npx cap sync ios"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
+    "@capacitor/ios": "^8.5.3",
     "@fontsource/inter": "^5.3.0"
   },
   "devDependencies": {

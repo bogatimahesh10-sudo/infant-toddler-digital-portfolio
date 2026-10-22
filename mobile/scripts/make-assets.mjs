@@ -4,7 +4,7 @@
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdirSync } from "node:fs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -44,6 +44,10 @@ const splash = (w, h) => `<rect width="${w}" height="${h}" fill="${FOREST}"/>${m
 for (const [dir, w, h] of [["drawable", 480, 320], ["drawable-land-mdpi", 480, 320], ["drawable-land-hdpi", 800, 480], ["drawable-land-xhdpi", 1280, 720], ["drawable-land-xxhdpi", 1600, 960], ["drawable-land-xxxhdpi", 1920, 1280], ["drawable-port-mdpi", 320, 480], ["drawable-port-hdpi", 480, 800], ["drawable-port-xhdpi", 720, 1280], ["drawable-port-xxhdpi", 960, 1600], ["drawable-port-xxxhdpi", 1280, 1920]]) {
   await render(join(res, dir, "splash.png"), w, h, splash(w, h));
 }
+// iOS: one 1024×1024 opaque icon (iOS rounds the corners itself) and a 2732×2732 splash.
+const ios = join(root, "ios", "App", "App", "Assets.xcassets");
+await render(join(ios, "AppIcon.appiconset", "AppIcon-512@2x.png"), 1024, 1024, `<rect width="1024" height="1024" fill="${FOREST}"/>${mark(232, 232, 560)}`);
+for (const f of ["splash-2732x2732.png", "splash-2732x2732-1.png", "splash-2732x2732-2.png"]) await render(join(ios, "Splash.imageset", f), 2732, 2732, splash(2732, 2732));
 // Play Store: 512×512 icon and 1024×500 feature graphic.
 await render(join(root, "store", "icon-512.png"), 512, 512, `<rect width="512" height="512" fill="${FOREST}"/>${mark(116, 116, 280)}`);
 await render(join(root, "store", "feature-graphic-1024x500.png"), 1024, 500, `<rect width="1024" height="500" fill="${FOREST}"/>${mark(96, 150, 200)}
@@ -62,6 +66,18 @@ for (const [name, tab] of [["1-home", "home"], ["2-budget", "budget"], ["3-goals
   await shots.evaluate(() => window.scrollTo(0, 0));
   await shots.waitForTimeout(200);
   await shots.screenshot({ path: join(root, "store", `screenshot-${name}.png`) });
+}
+// App Store: 1290×2796 iPhone screenshots (accepted for the 6.9-inch display slot).
+const iphone = await browser.newPage({ viewport: { width: 430, height: 932 }, deviceScaleFactor: 3 });
+await iphone.goto(process.env.PACE_PAGE_URL || pathToFileURL(join(root, "..", "pace", "index.html")).href);
+await iphone.waitForTimeout(400);
+if (await iphone.locator("[data-act=dismiss]").count()) await iphone.click("[data-act=dismiss]");
+mkdirSync(join(root, "store", "ios"), { recursive: true });
+for (const [name, tab] of [["1-home", "home"], ["2-budget", "budget"], ["3-goals", "goals"], ["4-insights", "insights"]]) {
+  await iphone.click(`[data-tab=${tab}]`);
+  await iphone.evaluate(() => window.scrollTo(0, 0));
+  await iphone.waitForTimeout(200);
+  await iphone.screenshot({ path: join(root, "store", "ios", `iphone-${name}.png`) });
 }
 await browser.close();
 console.log("Assets written");

@@ -1,8 +1,8 @@
-name: Android build
+name: Mobile builds
 
 on:
   push:
-    paths: ["pace/**", "mobile/**", "tests/**", ".github/workflows/android.yml"]
+    paths: ["pace/**", "mobile/**", "tests/**", ".github/workflows/mobile.yml"]
   workflow_dispatch:
 
 jobs:
@@ -66,3 +66,30 @@ jobs:
         with:
           name: pace-release-aab
           path: mobile/android/app/build/outputs/bundle/release/app-release.aab
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Build the web bundle and sync it into the iOS project
+        working-directory: mobile
+        run: |
+          npm ci
+          npm run sync:ios
+
+      # Compiles for the simulator without signing. This proves the iOS project builds;
+      # App Store uploads need an Apple Developer account (see mobile/README.md).
+      - name: Build for iOS Simulator
+        working-directory: mobile/ios/App
+        run: |
+          xcodebuild -project App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 40
+          exit ${PIPESTATUS[0]}
