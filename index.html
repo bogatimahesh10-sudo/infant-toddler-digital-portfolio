@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Budget</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Budget</h1>
+      <div class="month-nav">
+        <button id="prev-month" class="icon-btn" aria-label="Previous month">&lsaquo;</button>
+        <span id="month-label" class="month-label"></span>
+        <button id="next-month" class="icon-btn" aria-label="Next month">&rsaquo;</button>
+      </div>
+      <select id="currency" aria-label="Currency">
+        <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option>
+        <option>NPR</option><option>CAD</option><option>AUD</option><option>JPY</option>
+      </select>
+    </header>
+
+    <main>
+      <section class="summary" aria-label="Monthly summary">
+        <div class="card stat">
+          <span class="stat-label">Income</span>
+          <span id="sum-income" class="stat-value income"></span>
+        </div>
+        <div class="card stat">
+          <span class="stat-label">Spent</span>
+          <span id="sum-expense" class="stat-value expense"></span>
+        </div>
+        <div class="card stat">
+          <span class="stat-label">Left</span>
+          <span id="sum-balance" class="stat-value"></span>
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <h2 id="form-title">Add transaction</h2>
+          <form id="tx-form" autocomplete="off">
+            <div class="segmented" role="radiogroup" aria-label="Type">
+              <label><input type="radio" name="type" value="expense" checked /> <span>Expense</span></label>
+              <label><input type="radio" name="type" value="income" /> <span>Income</span></label>
+            </div>
+            <label class="field">
+              Amount
+              <input id="tx-amount" name="amount" type="number" inputmode="decimal" step="0.01" min="0.01" required />
+            </label>
+            <label class="field">
+              Category
+              <select id="tx-category" name="category" required></select>
+            </label>
+            <label class="field">
+              Date
+              <input id="tx-date" name="date" type="date" required />
+            </label>
+            <label class="field">
+              Note
+              <input id="tx-note" name="note" type="text" maxlength="120" placeholder="Optional" />
+            </label>
+            <p id="form-error" class="error" role="alert"></p>
+            <div class="row">
+              <button type="submit" class="primary" id="submit-btn">Add</button>
+              <button type="button" id="cancel-edit" hidden>Cancel</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="section-head">
+            <h2>Budgets</h2>
+            <button id="toggle-budget-edit" type="button">Edit</button>
+          </div>
+          <div id="budget-list"></div>
+          <form id="budget-form" hidden>
+            <p class="hint">Monthly limit per expense category. Leave blank for no limit.</p>
+            <div id="budget-inputs"></div>
+            <div class="row add-cat">
+              <input id="new-category" type="text" placeholder="New category" maxlength="40" />
+              <button type="button" id="add-category">Add category</button>
+            </div>
+            <div class="row">
+              <button type="submit" class="primary">Save budgets</button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Transactions</h2>
+          <div class="row">
+            <input id="search" type="search" placeholder="Search" aria-label="Search transactions" />
+            <select id="filter-type" aria-label="Filter by type">
+              <option value="all">All</option>
+              <option value="expense">Expenses</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
+        </div>
+        <ul id="tx-list" class="tx-list"></ul>
+        <p id="tx-empty" class="empty">No transactions this month yet.</p>
+      </section>
+
+      <section class="card data-tools">
+        <h2>Data</h2>
+        <div class="row">
+          <button id="export-csv" type="button">Export CSV</button>
+          <button id="export-json" type="button">Backup (JSON)</button>
+          <label class="button-like">
+            Restore backup
+            <input id="import-json" type="file" accept="application/json,.json" hidden />
+          </label>
+          <button id="reset" type="button" class="danger">Erase all data</button>
+        </div>
+        <p class="hint">Everything is stored only in this browser.</p>
+      </section>
+    </main>
+
+    <script src="budget.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
