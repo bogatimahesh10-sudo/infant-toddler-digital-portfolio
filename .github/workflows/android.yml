@@ -12,20 +12,22 @@ jobs:
       PACE_VERSION_CODE: ${{ github.run_number }}
       HAS_UPLOAD_KEY: ${{ secrets.PACE_KEYSTORE_BASE64 != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: mobile/package-lock.json
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
+      # The ubuntu-latest image ships the Android SDK (ANDROID_HOME); Gradle fetches any missing platform.
+      - name: Check Android SDK
+        run: echo "ANDROID_HOME=$ANDROID_HOME" && ls "$ANDROID_HOME"
 
       - name: Unit tests for the money rules
         run: node --test
