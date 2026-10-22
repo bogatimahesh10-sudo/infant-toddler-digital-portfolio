@@ -1,0 +1,66 @@
+name: Android build
+
+on:
+  push:
+    paths: ["pace/**", "mobile/**", "tests/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PACE_VERSION_CODE: ${{ github.run_number }}
+      HAS_UPLOAD_KEY: ${{ secrets.PACE_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Unit tests for the money rules
+        run: node --test
+
+      - name: Build the web bundle and sync it into the Android project
+        working-directory: mobile
+        run: |
+          npm ci
+          npm run sync
+
+      - name: Build debug APK (installable on any Android phone)
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Decode upload key
+        if: env.HAS_UPLOAD_KEY == 'true'
+        run: echo "${{ secrets.PACE_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/pace-upload.jks"
+
+      - name: Build signed release bundle for Google Play
+        if: env.HAS_UPLOAD_KEY == 'true'
+        working-directory: mobile/android
+        env:
+          PACE_KEYSTORE: ${{ runner.temp }}/pace-upload.jks
+          PACE_KEYSTORE_PASSWORD: ${{ secrets.PACE_KEYSTORE_PASSWORD }}
+          PACE_KEY_ALIAS: ${{ secrets.PACE_KEY_ALIAS }}
+          PACE_KEY_PASSWORD: ${{ secrets.PACE_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pace-debug-apk
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        if: env.HAS_UPLOAD_KEY == 'true'
+        with:
+          name: pace-release-aab
+          path: mobile/android/app/build/outputs/bundle/release/app-release.aab

@@ -21,7 +21,8 @@
         if (s && s.deleted) return null;
       }
     } catch (e) { /* storage unavailable: fall back to sample data */ }
-    return Seed.sample(today());
+    // The store build starts with first-time setup; the web prototype starts with sample data.
+    return window.PACE_START === "onboarding" ? null : Seed.sample(today());
   }
   let S = load();
   function save() {
@@ -1903,6 +1904,18 @@
   };
   document.addEventListener("input", onLive);
   document.addEventListener("change", onLive);
+  // Native wrappers call this for the Android back button. Returns false when there's nowhere to go back to.
+  window.PaceApp = {
+    back() {
+      if (!$("#lock").hidden) return false;
+      if (!overlay.hidden) { closeSheet(); return true; }
+      if (ui.onb && ui.onb.step > 0) { ui.onb.step--; render(); return true; }
+      if (ui.onb && S) { ui.onb = null; render(); return true; }
+      if (sub()) { back(); return true; }
+      if (ui.tab !== "home") { go("home"); return true; }
+      return false;
+    },
+  };
   window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (TABS.includes(h) && h !== ui.tab) go(h); });
 
   render();
