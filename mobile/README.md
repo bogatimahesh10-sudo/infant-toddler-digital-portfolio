@@ -88,8 +88,8 @@ Steps:
 1. **Enrol** at [developer.apple.com/programs](https://developer.apple.com/programs/).
 2. **Open the project on a Mac:**
    ```sh
-   git clone https://github.com/bogatimahesh10-sudo/infant-toddler-digital-portfolio.git
-   cd infant-toddler-digital-portfolio/mobile
+   git clone https://github.com/bogatimahesh10-sudo/smart-portfolio.git
+   cd smart-portfolio/mobile
    npm ci
    npm run sync:ios
    npx cap open ios
