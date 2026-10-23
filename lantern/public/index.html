@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Lantern</title>
+  <meta name="description" content="Discover who you are with simple questions, share your thoughts, and feel a little less alone.">
+  <meta name="theme-color" content="#f7f1e8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#14182b" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#view">Skip to content</a>
+  <header class="top">
+    <a class="brand" href="#home" aria-label="Lantern home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>Lantern</span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#discover" data-route="discover"><span class="ico" aria-hidden="true">&#10022;</span><span>Discover</span></a>
+      <a href="#companion" data-route="companion"><span class="ico" aria-hidden="true">&#10047;</span><span>Talk</span></a>
+      <a href="#thoughts" data-route="thoughts"><span class="ico" aria-hidden="true">&#10070;</span><span>Thoughts</span></a>
+      <a href="#create" data-route="create"><span class="ico" aria-hidden="true">&#9998;</span><span>Create</span></a>
+    </nav>
+    <a class="help-btn" href="#help">Get help now</a>
+  </header>
+
+  <main id="view" tabindex="-1" aria-live="polite">
+    <noscript><p class="card">Lantern needs JavaScript turned on.</p></noscript>
+  </main>
+
+  <footer class="foot">
+    <p>Lantern is a place for reflection and connection. It is not therapy or an emergency service.
+      If you're in danger, <a href="#help">get help now</a>.</p>
+    <p><a href="#privacy">Your privacy &amp; data</a></p>
+  </footer>
+
+  <script src="core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
