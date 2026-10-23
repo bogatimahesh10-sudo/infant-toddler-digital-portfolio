@@ -35,6 +35,9 @@
     actLimit: 60, insRange: "3m", reorder: false, calMonth: C.startOfMonth(today()), calSel: today(), receiptDraft: undefined,
   };
   const TABS = ["home", "budget", "activity", "goals", "insights"];
+  // Store builds (Android and iOS) leave out prototype-only features: the simulated bank
+  // connection and the prototype tools. The web prototype keeps them for user testing.
+  const STORE = window.PACE_STORE === true;
   if (TABS.includes(location.hash.slice(1))) ui.tab = location.hash.slice(1);
   const provider = Prov.createMockProvider({ today, delayMs: 900 });
 
@@ -401,7 +404,7 @@
       <button class="btn" data-act="add-tx">${ico("plus")}Add transaction</button>
       <button class="btn" data-act="add-bill">${ico("cal")}Add bill</button>
       <button class="btn" data-act="add-tx" data-type="transfer">${ico("swap")}Move money</button>
-      ${conn ? `<button class="btn" data-act="open" data-sub="connection" data-arg="${conn.id}">${ico("sync")}Bank sync</button>` : `<button class="btn" data-act="connect-start">${ico("bank")}Connect bank</button>`}
+      ${STORE ? `<button class="btn" data-act="open" data-sub="bills">${ico("cal")}Bills & calendar</button>` : conn ? `<button class="btn" data-act="open" data-sub="connection" data-arg="${conn.id}">${ico("sync")}Bank sync</button>` : `<button class="btn" data-act="connect-start">${ico("bank")}Connect bank</button>`}
     </div></section>`);
     out.push(`<button class="btn primary fab" data-act="add-tx">${ico("plus")}Add</button>`);
     return out.join("");
@@ -420,7 +423,7 @@
 
   function occRow(o) {
     const chip = { overdue: ["error", "Overdue"], due: ["caution", "Due today"], upcoming: ["", relDay(o.date)], paid: ["ok", "Paid"], skipped: ["", "Skipped"], paused: ["", "Paused"] }[o.status];
-    const reminder = S.settings.notifications.bills && o.rule.reminder_days && ["upcoming", "due"].includes(o.status) ? `<span>${ico("bell", "s")} ${o.rule.reminder_days} day${o.rule.reminder_days === 1 ? "" : "s"} before</span>` : "";
+    const reminder = !STORE && S.settings.notifications.bills && o.rule.reminder_days && ["upcoming", "due"].includes(o.status) ? `<span>${ico("bell", "s")} ${o.rule.reminder_days} day${o.rule.reminder_days === 1 ? "" : "s"} before</span>` : "";
     return `<button class="row" data-act="edit-occ" data-id="${o.id}"><span class="cat bill">${ico((cat(o.rule.category_id) || {}).icon || "cal")}</span><div class="grow"><div class="t">${esc(o.rule.name)}</div><div class="s"><span class="chip ${chip[0]}">${chip[1]}</span><span>${FREQ[o.rule.frequency]}</span>${reminder}</div></div><div class="amt ${["paid", "skipped"].includes(o.status) ? "strike" : ""}">${money(o.amount)}</div></button>`;
   }
 
@@ -703,7 +706,8 @@
     const assets = live.filter((a) => !C.isLiability(a)).reduce((s, a) => s + C.accountBalance(S, a), 0);
     const debts = live.filter(C.isLiability).reduce((s, a) => s + C.accountBalance(S, a), 0);
     const out = [];
-    if (!S.connections.some((c) => c.status === "connected")) out.push(notice("sample", "No real bank is connected", "Accounts are entered manually or come from the demo connection. Pace never asks for your banking password."));
+    if (STORE) out.push(notice("info", "Accounts you enter yourself", "Pace doesn't connect to banks. Tap an account to update its balance."));
+    else if (!S.connections.some((c) => c.status === "connected")) out.push(notice("sample", "No real bank is connected", "Accounts are entered manually or come from the demo connection. Pace never asks for your banking password."));
     out.push(`<section class="card"><div class="stats"><div class="stat"><span class="l">You own</span><span class="v">${money(assets)}</span></div><div class="stat"><span class="l">You owe</span><span class="v">${money(debts)}</span></div><div class="stat"><span class="l">Net position</span><span class="v">${money(assets - debts)}</span></div></div></section>`);
     for (const [title, test] of groups) {
       const list = live.filter(test);
@@ -717,6 +721,7 @@
     }
     out.push(`<div class="btn-row"><button class="btn" data-act="acct-new">${ico("plus")}Add account</button></div>`);
     const conns = S.connections;
+    if (STORE) return out.join("");
     out.push(`<section class="card"><div class="card-head"><h2>Bank connections</h2><span class="chip sample">Demo only</span></div>
       <div class="rows">${conns.map((c) => `<button class="row" data-act="open" data-sub="connection" data-arg="${c.id}"><span class="cat">${ico("bank")}</span><div class="grow"><div class="t">${esc(c.institution_name)}</div><div class="s">${statePill(c.status)}<span>Demo connection</span></div></div>${ico("chev", "s")}</button>`).join("") || `<p class="small muted">No banks connected. Connecting is optional; you can keep using Pace with manual entries.</p>`}</div>
       <button class="btn primary" data-act="connect-start" ${S.settings.offline ? "disabled" : ""}>${ico("bank")}Connect a bank</button>
@@ -864,7 +869,7 @@
         ${row("Hide balances", "Show $••• instead of amounts", switchCtl("set-hide", S.settings.hide_balances, "hide", "", "Hide balances"))}
         ${row("Roll over unspent money", "Carry leftover category money into the next period", switchCtl("set-roll", S.settings.rollover, "rollover", "", "Roll over unspent money"))}</div>
       </section>
-      <section class="card"><h2>Notifications</h2><div class="rows">
+      ${STORE ? "" : `<section class="card"><h2>Notifications</h2><div class="rows">
         ${row("Bill reminders", "Before each bill is due, using each bill's reminder setting", switchCtl("n-bills", n.bills, "notif", 'data-key="bills"', "Bill reminders"))}
         ${row("Shortfall alerts", "When the forecast shows you'll run short", switchCtl("n-short", n.shortfall, "notif", 'data-key="shortfall"', "Shortfall alerts"))}
         ${row("Weekly summary", "A Monday recap of last week", switchCtl("n-week", n.weekly_summary, "notif", 'data-key="weekly_summary"', "Weekly summary"))}
@@ -872,18 +877,18 @@
       <section class="card"><h2>Security & privacy</h2><div class="rows">
         ${row("App lock", "Ask for Face ID, fingerprint or passcode when Pace opens (simulated)", switchCtl("set-lock", S.settings.app_lock, "applock", "", "App lock"))}
         <div class="switch-row"><div class="grow"><b>Linked providers</b><div class="small muted">${S.connections.length ? S.connections.map((c) => `${esc(c.institution_name)}: ${c.status}`).join(", ") : "None"}</div></div><button class="btn small" data-act="open" data-sub="accounts">Manage</button></div>
-      </div><p class="tiny muted">Pace never stores bank passwords. Bank access uses consent references that you can withdraw.</p></section>
-      <section class="card"><h2>Your data</h2>${notice("info", "Stored on this device only", "This prototype keeps your data in this browser's local storage. It isn't encrypted, backed up or synced to the cloud, so don't enter real bank details.")}<div class="btn-row"><button class="btn" data-act="export">Export my data</button><button class="btn danger" data-act="delete-all">Delete all data</button></div></section>
-      <section class="card"><h2>Prototype tools</h2><div class="rows">
+      </div><p class="tiny muted">Pace never stores bank passwords. Bank access uses consent references that you can withdraw.</p></section>`}
+      <section class="card"><h2>Your data</h2>${notice("info", "Stored on this device only", STORE ? "Pace keeps your data on this phone. It isn't backed up or synced, so deleting the app deletes your data. Export it first if you want a copy." : "This prototype keeps your data in this browser's local storage. It isn't encrypted, backed up or synced to the cloud, so don't enter real bank details.")}<div class="btn-row"><button class="btn" data-act="export">Export my data</button><button class="btn danger" data-act="delete-all">Delete all data</button></div></section>
+      ${STORE ? "" : `<section class="card"><h2>Prototype tools</h2><div class="rows">
         ${row("Simulate offline", "See how Pace behaves without a connection", switchCtl("set-offline", S.settings.offline, "offline", "", "Simulate offline"))}
-      </div>${guideFlows()}<div class="btn-row"><button class="btn" data-act="reset-sample">Reset sample data</button></div></section>`;
+      </div>${guideFlows()}<div class="btn-row"><button class="btn" data-act="reset-sample">Reset sample data</button></div></section>`}`;
   }
 
   function guideFlows() {
     return `<div class="flows">
       <button class="flow-btn" data-act="start-onboarding"><span class="k">A</span><div><b>First-time setup</b><span>Currency, pay, balances, bills, buffer and a first goal</span></div></button>
       <button class="flow-btn" data-act="add-tx"><span class="k">B</span><div><b>Record an expense</b><span>Watch Budget, Activity and the forecast update</span></div></button>
-      <button class="flow-btn" data-act="connect-start"><span class="k">C</span><div><b>Connect a bank</b><span>Consent, handoff, import, duplicates and reconciliation</span></div></button>
+      ${STORE ? "" : `<button class="flow-btn" data-act="connect-start"><span class="k">C</span><div><b>Connect a bank</b><span>Consent, handoff, import, duplicates and reconciliation</span></div></button>`}
       <button class="flow-btn" data-act="flow-d"><span class="k">D</span><div><b>Avoid a cash shortfall</b><span>See the projected shortfall and the ways to fix it</span></div></button>
     </div>`;
   }
@@ -1185,7 +1190,7 @@
       <div class="grid2">${moneyField("amount", "Amount", r.amount ? plain(r.amount) : "", { required: true, placeholder: "0.00" })}
       <label class="field">Repeats<select class="input" name="frequency">${options(C.FREQUENCIES.map((f) => [f, FREQ[f]]), r.frequency)}</select></label></div>
       <div class="grid2"><label class="field">Next due<input class="input" type="date" name="next" value="${nextDue}" required></label>
-      <label class="field">Remind me<select class="input" name="reminder">${options([["0", "No reminder"], ["1", "1 day before"], ["2", "2 days before"], ["3", "3 days before"], ["7", "1 week before"]], String(r.reminder_days || 0))}</select></label></div>
+      <label class="field" ${STORE ? "hidden" : ""}>Remind me<select class="input" name="reminder">${options([["0", "No reminder"], ["1", "1 day before"], ["2", "2 days before"], ["3", "3 days before"], ["7", "1 week before"]], String(r.reminder_days || 0))}</select></label></div>
       <div class="grid2"><label class="field">Category<select class="input" name="category_id">${options(S.categories.filter((c) => c.type === "expense" && !c.archived_at).map((c) => [c.id, c.name]), r.category_id)}</select></label>
       <label class="field">Paid from<select class="input" name="account_id">${options(liveAccounts().filter((a) => a.type !== "investment" && a.type !== "loan").map((a) => [a.id, a.name]), r.account_id)}</select></label></div>
       ${isNew ? "" : `<div class="field">Status${seg("rule-status", r.status, [["active", "Active"], ["paused", "Paused"], ["cancelled", "Cancelled"]], "Bill status")}<input type="hidden" name="status" value="${r.status}"></div>`}
@@ -1661,7 +1666,7 @@
         onConfirm: () => apply(`${a.name} closed.`, { ...S, accounts: S.accounts.map((x) => x.id === a.id ? { ...x, status: "closed" } : x) }, { undoable: true }) });
     },
 
-    "connect-start": () => { closeSheet(); if (S.settings.offline) { toast("You're offline. Connect a bank when you're back online."); return; } ui.connect = { step: "intro" }; ui.stack = ui.stack.filter((s) => s.name !== "connect"); openSub("connect"); },
+    "connect-start": () => { if (STORE) return; closeSheet(); if (S.settings.offline) { toast("You're offline. Connect a bank when you're back online."); return; } ui.connect = { step: "intro" }; ui.stack = ui.stack.filter((s) => s.name !== "connect"); openSub("connect"); },
     "connect-go": (el) => { ui.connect = { ...ui.connect, step: el.dataset.step }; render(); window.scrollTo(0, 0); },
     "connect-inst": (el) => { ui.connect = { ...ui.connect, inst: el.dataset.id, step: "consent" }; render(); window.scrollTo(0, 0); },
     "connect-approve": connectApprove,

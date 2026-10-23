@@ -4,7 +4,7 @@ This wraps the Pace prototype (`../pace`) as Android and iOS apps using [Capacit
 
 - **App ID / bundle ID:** `com.bogatimahesh.pace`. To change it, edit `capacitor.config.json`, `android/app/build.gradle` and `PRODUCT_BUNDLE_IDENTIFIER` in `ios/App/App.xcodeproj`. Do this **before the first upload to either store**. After that it can never change.
 - **Minimum Android:** 7.0 (API 24), targeting API 36. **Minimum iOS:** 15, iPhone only.
-- **The store build differs from the web prototype in three ways:** it opens on first-time setup instead of sample data, it bundles the Inter font so it needs no internet, and the Android back button steps back through screens and sheets before leaving the app.
+- **The store builds differ from the web prototype:** they open on first-time setup instead of sample data, they bundle the Inter font so they need no internet, and the Android back button steps back through screens and sheets before leaving the app. They also leave out features that only simulate something: the bank connection, the app lock, notification switches, bill reminders and the prototype tools.
 
 ## Build it
 
@@ -61,6 +61,28 @@ There's no 12-tester rule like Google's, but there are three requirements:
 - **A Mac with Xcode,** for signing and uploading. A cloud Mac or a CI service such as Codemagic or GitHub's macOS runners can do it instead, but using your own Mac is simplest the first time.
 - **App Review.** Apple reviews every release. Most reviews finish within a day or two.
 
+### Release to the App Store from GitHub (no Mac needed)
+
+The **Mobile builds** workflow can sign the iOS app and upload it to App Store Connect, using an App Store Connect API key. Xcode manages the signing certificate in the cloud, so you don't need to handle certificate files.
+
+1. **Enrol** in the Apple Developer Program (see below) and wait for it to be approved.
+2. **Register the bundle ID.** Go to [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/identifiers/list), choose **Identifiers**, then **+**. Pick **App IDs**, then **App**. Enter the description `Pace` and the explicit bundle ID `com.bogatimahesh.pace`.
+3. **Create the app record** in [App Store Connect](https://appstoreconnect.apple.com) under **Apps → + → New App**. Choose iOS, enter the name from `store/listing.md`, the bundle ID `com.bogatimahesh.pace` and any SKU, such as `pace-001`.
+4. **Create an API key.** Go to App Store Connect, then **Users and Access → Integrations → App Store Connect API → Team Keys → +**. Give the key the **Admin** role, which is needed for cloud-managed signing. Download the `.p8` file. Apple only lets you download it once. Note the **Key ID** and the **Issuer ID**.
+5. **Find your Team ID** at [developer.apple.com/account](https://developer.apple.com/account), under **Membership details**.
+6. **Add four repository secrets** in GitHub (Settings → Secrets and variables → Actions):
+   - `APPSTORE_KEY_ID`: the Key ID
+   - `APPSTORE_ISSUER_ID`: the Issuer ID
+   - `APPSTORE_PRIVATE_KEY`: the whole contents of the `.p8` file, including the BEGIN and END lines
+   - `APPLE_TEAM_ID`: your Team ID
+7. **Run the release.** Go to **Actions → Mobile builds → Run workflow**, tick **Sign and upload the iOS app**, enter the version (for example `1.0.0`), and run it. The build number is the run number, so every upload is higher than the last.
+8. After Apple finishes processing, usually 10–30 minutes, the build appears under **TestFlight**. Install it on your iPhone with the TestFlight app.
+9. Fill in the listing (step 7 in the Mac steps below), add the build to the version, and choose **Submit for Review**.
+
+If the release job fails, the log shows which step failed. Common causes are a key without the Admin role, a bundle ID that isn't registered yet, or a version number that has already been used.
+
+### Release from a Mac with Xcode
+
 Steps:
 
 1. **Enrol** at [developer.apple.com/programs](https://developer.apple.com/programs/).
@@ -90,12 +112,11 @@ Steps:
 Two review risks to deal with before submitting:
 
 - **Guideline 4.2 (minimum functionality).** Apple rejects apps that are just a website in a wrapper. Pace runs fully offline and has real features, which helps. Explain this in the review notes, for example: *"All features work offline on the device. There is no account or server."*
-- **Guideline 2.3 (accurate metadata) and the bank demo.** A "Connect a bank" screen that only simulates a connection may be questioned. It's safer to remove it from store builds until a real provider is in place.
+- **Guideline 2.3 (accurate metadata).** Store builds already leave out the simulated bank connection, the simulated app lock, the notification switches (no notifications are sent) and the prototype tools. Only the web prototype keeps them.
 
 ## Before a public release
 
 - Check that "Pace" is free to use as a trademark and app name.
-- Decide whether to keep the simulated "Connect a bank" flow. It's labelled as a demo, but a public app may be better without a feature that only pretends to work.
 - Add a support email to the listing and the privacy policy.
 - Test on a real phone: the back button, the keyboard over forms, attaching a receipt photo, and dark mode.
 

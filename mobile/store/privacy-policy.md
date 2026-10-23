@@ -14,11 +14,11 @@ Nothing. Pace has no account system, no server, no analytics and no advertising.
 
 ## Bank connections
 
-This version of Pace can't connect to a real bank. The "Connect a bank" feature is a demonstration that uses made-up data. Pace never asks for, receives or stores your banking password.
+This version of Pace doesn't connect to banks. You enter balances and transactions yourself. Pace never asks for, receives or stores your banking password.
 
 ## Camera and photos
 
-If you attach a receipt, Android asks you to choose a photo. That photo is stored only on your device, inside Pace.
+If you attach a receipt, your phone asks you to choose a photo. That photo is stored only on your device, inside Pace.
 
 ## Deleting your data
 

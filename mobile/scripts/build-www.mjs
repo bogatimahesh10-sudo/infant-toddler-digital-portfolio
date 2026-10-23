@@ -1,5 +1,6 @@
 // Builds mobile/www from the web prototype in ../pace so the app works offline:
-// adds a full document head, bundles the Inter font locally and starts at first-time setup.
+// adds a full document head, bundles the Inter font locally, starts at first-time setup and
+// turns on store mode (no simulated bank connection or prototype tools).
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,7 +16,7 @@ mkdirSync(join(www, "fonts"), { recursive: true });
 let page = readFileSync(join(pace, "index.html"), "utf8");
 // The prototype loads Inter from Google Fonts; the app ships its own copy instead.
 page = page.replace(/<link rel="preconnect"[^>]*>\s*/g, "").replace(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>\s*/g, "");
-page = page.replace('<script src="core.js"></script>', '<script>window.PACE_START = "onboarding";</script>\n<script src="core.js"></script>');
+page = page.replace('<script src="core.js"></script>', '<script>window.PACE_START = "onboarding"; window.PACE_STORE = true;</script>\n<script src="core.js"></script>');
 page = page.replace('<script src="app.js"></script>', '<script src="app.js"></script>\n<script src="native.js"></script>');
 
 const head = `<!doctype html>

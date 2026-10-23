@@ -37,7 +37,7 @@ PLAN AND TRACK
 
 PRIVATE BY DESIGN
 • Your data stays on your phone. Pace has no account, no server and no ads.
-• The bank connection in this version is a demonstration only. It uses made-up data and never contacts a real bank.
+• Pace doesn't connect to your bank. You enter balances and transactions yourself.
 
 Pace is a budgeting tool, not financial advice. Safe to Spend is an estimate based on what you enter.
 ```
@@ -66,5 +66,5 @@ The screenshots use the made-up sample data, and the header shows a "Sample data
 - **Target audience:** 18 and over. Choosing ages under 18 brings in the Families policy requirements.
 - **News app:** No.
 - **Data safety:** The app does **not collect or share** any user data. Everything is stored only on the device, and the app makes no network requests. Data isn't encrypted in transit because nothing is sent. Users can delete all data in the app (Settings → Delete all data).
-- **Financial features declaration:** choose personal finance or budgeting management. Pace offers no loans, no payments, no trading and no access to bank accounts. The bank connection is simulated and labelled as a demo in the app.
+- **Financial features declaration:** choose personal finance or budgeting management. Pace offers no loans, no payments, no trading and no access to bank accounts.
 - **Government app:** No.
