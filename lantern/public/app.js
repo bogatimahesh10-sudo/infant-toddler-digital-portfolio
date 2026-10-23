@@ -1,16 +1,17 @@
 // Lantern UI. Personal things (portraits, notes, chats, moods) stay in this browser's
-// localStorage. Only thoughts someone chooses to share go to the server.
+// localStorage. Shared thoughts and the AI companion go through window.LanternBackend.
 (function () {
   "use strict";
 
   const C = window.LanternCore;
+  const B = window.LanternBackend;
   const KEY = "lantern.v1";
   const view = document.getElementById("view");
 
   // --- storage ----------------------------------------------------------------------------
 
   function blank() {
-    return { portraits: [], notes: [], chat: [], moods: [], sharePortrait: true, myPosts: {}, related: [], name: "" };
+    return { portraits: [], notes: [], chat: [], moods: [], sharePortrait: true, name: "" };
   }
   function load() {
     try {
@@ -26,31 +27,7 @@
     } catch (e) {}
   }
 
-  // --- server -----------------------------------------------------------------------------
-
-  let server = { online: false, ai: false };
-  const ready = fetch("api/health")
-    .then((r) => r.json())
-    .then((j) => (server = { online: Boolean(j.ok), ai: Boolean(j.ai) }))
-    .catch(() => (server = { online: false, ai: false }));
-
-  async function api(method, path, body, headers) {
-    const res = await fetch(path, {
-      method,
-      headers: Object.assign({ "Content-Type": "application/json" }, headers || {}),
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    let json = {};
-    try {
-      json = await res.json();
-    } catch (e) {}
-    if (!res.ok) {
-      const err = new Error(json.error || "Something went wrong. Please try again.");
-      err.status = res.status;
-      throw err;
-    }
-    return json;
-  }
+  const ready = B.init().catch(() => ({ ai: false, posts: "none", postsNote: "" }));
 
   // --- DOM helpers ------------------------------------------------------------------------
 
@@ -87,25 +64,60 @@
     update();
     return el;
   }
+  // A button that asks "Are you sure?" in place, since pop-up dialogs aren't available everywhere.
+  function confirmButton(label, question, onYes, cls) {
+    const wrap = h("span", { class: "confirm" });
+    const btn = h(
+      "button",
+      {
+        class: cls || "link",
+        type: "button",
+        onclick: () =>
+          wrap.replaceChildren(
+            h("span", { class: "small" }, question),
+            h(
+              "button",
+              {
+                class: "link danger",
+                type: "button",
+                onclick: async () => {
+                  await onYes();
+                  if (wrap.isConnected) wrap.replaceChildren(btn);
+                },
+              },
+              "Yes"
+            ),
+            h("button", { class: "link", type: "button", onclick: () => wrap.replaceChildren(btn) }, "Cancel")
+          ),
+      },
+      label
+    );
+    wrap.append(btn);
+    return wrap;
+  }
+  function currentRoute() {
+    return location.hash.slice(1) || "home";
+  }
 
   // --- router -----------------------------------------------------------------------------
 
   let cleanup = null;
-  const routes = { home, discover, companion, thoughts, create, breathe, help, privacy };
-  const titles = { discover: "Who am I?", companion: "Talk", thoughts: "Thoughts", create: "Create", breathe: "Breathe", help: "Get help now", privacy: "Your privacy" };
+  const routes = { home, discover, companion, thoughts, notes: () => thoughts("mine"), create, breathe, help, privacy };
+  const navFor = { notes: "thoughts" };
+  const titles = { discover: "Who am I?", companion: "Talk", thoughts: "Thoughts", notes: "Thoughts", create: "Create", breathe: "Breathe", help: "Get help now", privacy: "Your privacy" };
   let firstRender = true;
 
   function router() {
     if (cleanup) cleanup();
     cleanup = null;
-    const [name, sub] = location.hash.slice(1).split("/");
+    const name = currentRoute();
     const fn = routes[name] || home;
     document.querySelectorAll(".nav a").forEach((a) => {
-      if (a.dataset.route === name) a.setAttribute("aria-current", "page");
+      if (a.dataset.route === (navFor[name] || name)) a.setAttribute("aria-current", "page");
       else a.removeAttribute("aria-current");
     });
     document.title = titles[name] ? `${titles[name]} · Lantern` : "Lantern";
-    fn(sub);
+    fn();
     window.scrollTo(0, 0);
     if (!firstRender) view.focus({ preventScroll: true });
     firstRender = false;
@@ -375,16 +387,28 @@
 
   async function companion() {
     mount(h("h1", null, "Talk"), h("p", { class: "muted" }, "Getting things ready…"));
-    await ready;
-    if (location.hash.slice(1).split("/")[0] !== "companion") return;
-    const live = server.ai;
+    const status = await ready;
+    if (currentRoute() !== "companion") return;
+    let live = status.ai;
     const chatEl = h("div", { class: "chat", "aria-live": "polite" });
     const alerts = h("div");
+    const offlineNote = h("div");
     const errorEl = h("p", { class: "error", role: "alert" });
     const input = h("textarea", { id: "msg", rows: "2", maxlength: String(C.LIMITS.chatMessage), placeholder: "Type what's on your mind…", "aria-label": "Your message" });
     const sendBtn = h("button", { type: "button" }, "Send");
     let busy = false;
 
+    function showOffline(message) {
+      offlineNote.replaceChildren(
+        h(
+          "div",
+          { class: "card notice" },
+          h("strong", null, "Offline mode. "),
+          message || "The live AI companion isn't connected right now, so you'll get pre-written reflection prompts instead.",
+          " You can still write freely; it all stays on your device."
+        )
+      );
+    }
     function bubble(role, text) {
       return h("div", { class: "bubble " + role }, text);
     }
@@ -400,20 +424,31 @@
       data.chat.push({ role: "user", content: text });
       save();
       renderChat();
-      if (C.detectCrisis(text)) alerts.replaceChildren(crisisCard());
-      const typing = h("div", { class: "bubble assistant typing", "aria-label": "Companion is typing" }, h("span"), h("span"), h("span"));
-      chatEl.append(typing);
-      typing.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      const crisis = C.detectCrisis(text);
+      if (crisis) alerts.replaceChildren(crisisCard());
+      const pending = h("div", { class: "bubble assistant typing", "aria-label": "Companion is typing" }, h("span"), h("span"), h("span"));
+      chatEl.append(pending);
+      pending.scrollIntoView({ block: "nearest", behavior: "smooth" });
       busy = true;
       sendBtn.disabled = true;
       try {
         let reply;
         if (live) {
           const portrait = data.sharePortrait ? C.portraitForCompanion(data.portraits[0]) : "";
-          const res = await api("POST", "api/chat", { messages: data.chat, portrait });
-          reply = res.reply;
-          if (res.crisis) alerts.replaceChildren(crisisCard());
-        } else {
+          try {
+            const res = await B.chat(C.cleanChatHistory(data.chat), portrait, crisis, (partial) => {
+              pending.className = "bubble assistant";
+              pending.textContent = partial;
+            });
+            reply = res.reply;
+            if (res.crisis) alerts.replaceChildren(crisisCard());
+          } catch (e) {
+            if (!e.offline) throw e;
+            live = false;
+            showOffline(e.message);
+          }
+        }
+        if (!live) {
           await new Promise((r) => setTimeout(r, 700));
           reply = OFFLINE_PROMPTS[data.chat.filter((m) => m.role === "user").length % OFFLINE_PROMPTS.length];
         }
@@ -446,6 +481,7 @@
         { class: "small muted", style: "font-weight:400;display:flex;gap:8px;align-items:center;margin-top:8px" },
         h("input", {
           type: "checkbox",
+          id: "share-portrait",
           checked: data.sharePortrait,
           onchange: (e) => {
             data.sharePortrait = e.target.checked;
@@ -455,17 +491,12 @@
         "Let the companion know my portrait so it understands me better"
       );
 
+    if (!live) showOffline();
     renderChat();
     mount(
       h("h1", null, "Talk"),
       h("p", { class: "muted" }, "A gentle companion to talk with, any time. It's an AI, not a person or a therapist, but it's here to listen."),
-      !live &&
-        h(
-          "div",
-          { class: "card notice" },
-          h("strong", null, "Offline mode. "),
-          "The live AI companion isn't connected right now, so you'll get pre-written reflection prompts instead. You can still write freely; it all stays on your device."
-        ),
+      offlineNote,
       chatEl,
       alerts,
       errorEl,
@@ -475,48 +506,47 @@
         "div",
         { class: "row spread", style: "margin-top:8px" },
         h("span", { class: "small muted" }, "Your conversation is saved only on this device."),
-        h(
-          "button",
-          {
-            class: "link",
-            type: "button",
-            onclick: () => {
-              if (!confirm("Clear this conversation from your device?")) return;
-              data.chat = [];
-              save();
-              alerts.replaceChildren();
-              renderChat();
-            },
-          },
-          "Clear conversation"
-        )
+        confirmButton("Clear conversation", "Clear this conversation?", () => {
+          data.chat = [];
+          save();
+          alerts.replaceChildren();
+          renderChat();
+        })
       )
     );
   }
 
   // --- thoughts ---------------------------------------------------------------------------
 
-  async function thoughts(sub) {
+  async function thoughts(initialTab) {
+    const route = currentRoute();
     mount(h("h1", null, "Thoughts"), h("p", { class: "muted" }, "Getting things ready…"));
-    await ready;
-    if (location.hash.slice(1).split("/")[0] !== "thoughts") return;
-    let tab = sub === "mine" ? "mine" : "everyone";
-    let visibility = server.online ? "share" : "private";
+    const status = await ready;
+    if (currentRoute() !== route) return;
+    let tab = initialTab === "mine" ? "mine" : "everyone";
+    let canShare = status.posts === "write";
+    let visibility = canShare ? "share" : "private";
+    let posts = null;
+    let postsError = "";
 
     const text = h("textarea", { id: "thought", maxlength: String(C.LIMITS.thought), placeholder: "What's on your mind?" });
     const name = h("input", { type: "text", id: "name", maxlength: String(C.LIMITS.name), placeholder: "Someone", value: data.name || "" });
     const nameRow = h("div", { style: "margin-top:10px" }, h("label", { for: "name" }, "Name to show (optional)"), name);
     const alerts = h("div");
     const errorEl = h("p", { class: "error", role: "alert" });
+    const shareNote = h("p", { class: "small muted", style: "margin-top:8px" });
     const submit = h("button", { type: "button" });
     let crisisAcknowledged = false;
 
     const segPrivate = h("button", { type: "button", onclick: () => setVisibility("private") }, "Keep private");
-    const segShare = h("button", { type: "button", disabled: !server.online, onclick: () => setVisibility("share") }, "Share with everyone");
+    const segShare = h("button", { type: "button", onclick: () => setVisibility("share") }, "Share with everyone");
     function setVisibility(v) {
       visibility = v;
       segPrivate.setAttribute("aria-pressed", String(v === "private"));
       segShare.setAttribute("aria-pressed", String(v === "share"));
+      segShare.disabled = !canShare;
+      shareNote.textContent = canShare ? "" : status.postsNote;
+      shareNote.hidden = canShare || !status.postsNote;
       nameRow.hidden = v !== "share";
       submit.textContent = v === "share" ? "Share" : "Save privately";
       crisisAcknowledged = false;
@@ -544,24 +574,23 @@
         data.notes = [{ id: String(Date.now()), text: value, created_at: new Date().toISOString() }].concat(data.notes);
         save();
         text.value = "";
-        tab = "mine";
-        renderTabs();
-        renderList();
+        switchTab("mine");
         return;
       }
       submit.disabled = true;
       try {
         data.name = C.cleanText(name.value);
-        const res = await api("POST", "api/posts", { text: value, name: data.name });
-        data.myPosts[res.post.id] = res.token;
         save();
+        await B.addPost({ text: value, name: data.name });
         text.value = "";
         setVisibility("share");
-        tab = "everyone";
-        renderTabs();
-        renderList();
+        switchTab("everyone");
       } catch (e) {
         errorEl.textContent = e.message;
+        if ((await B.init()).posts !== "write") {
+          canShare = false;
+          setVisibility("private");
+        }
       } finally {
         submit.disabled = false;
       }
@@ -572,28 +601,20 @@
     const tabMine = h("button", { type: "button", onclick: () => switchTab("mine") }, "My private notes");
     function switchTab(t) {
       tab = t;
-      renderTabs();
-      renderList();
-    }
-    function renderTabs() {
       tabEveryone.setAttribute("aria-pressed", String(tab === "everyone"));
       tabMine.setAttribute("aria-pressed", String(tab === "mine"));
+      renderList();
     }
 
-    async function renderList() {
+    function renderList() {
       if (tab === "mine") return renderNotes();
-      if (!server.online) {
-        list.replaceChildren(h("div", { class: "card notice" }, "Shared thoughts need the Lantern server, which isn't reachable right now. Your private notes still work."));
+      if (status.posts === "none") {
+        list.replaceChildren(h("div", { class: "card notice" }, status.postsNote || "Shared thoughts aren't available right now.", " Your private notes still work."));
         return;
       }
-      list.replaceChildren(h("p", { class: "muted" }, "Loading…"));
-      try {
-        const { posts } = await api("GET", "api/posts");
-        if (tab !== "everyone") return;
-        list.replaceChildren(...(posts.length ? posts.map(postCard) : [h("p", { class: "muted" }, "No shared thoughts yet. Yours could be the first.")]));
-      } catch (e) {
-        list.replaceChildren(h("p", { class: "error" }, e.message));
-      }
+      if (postsError) return list.replaceChildren(h("p", { class: "error" }, postsError));
+      if (!posts) return list.replaceChildren(h("p", { class: "muted" }, "Loading…"));
+      list.replaceChildren(...(posts.length ? posts.map(postCard) : [h("p", { class: "muted" }, "No shared thoughts yet. Yours could be the first.")]));
     }
 
     function renderNotes() {
@@ -609,42 +630,33 @@
             h("div", { class: "post-meta" }, fmtDate(n.created_at), " ", h("span", { class: "badge" }, "Private")),
             n.prompt && h("p", { class: "muted small" }, n.prompt),
             h("p", { class: "post-text" }, n.text),
-            h(
-              "button",
-              {
-                class: "link",
-                type: "button",
-                onclick: () => {
-                  if (!confirm("Delete this note?")) return;
-                  data.notes = data.notes.filter((x) => x.id !== n.id);
-                  save();
-                  renderNotes();
-                },
-              },
-              "Delete"
-            )
+            confirmButton("Delete", "Delete this note?", () => {
+              data.notes = data.notes.filter((x) => x.id !== n.id);
+              save();
+              renderNotes();
+            })
           )
         )
       );
     }
 
+    // Comment boxes that are open, and their drafts, survive live updates of the list.
+    const openComments = new Set();
+    const drafts = {};
+
     function postCard(p) {
-      const mine = Boolean(data.myPosts[p.id]);
-      const related = data.related.includes(p.id);
+      const canAct = status.posts === "write";
       const relateBtn = h(
         "button",
         {
           class: "ghost",
           type: "button",
-          "aria-pressed": String(related),
-          disabled: related,
+          "aria-pressed": String(p.related),
+          disabled: p.related || !canAct,
           onclick: async () => {
             relateBtn.disabled = true;
             try {
-              await api("POST", `api/posts/${p.id}/relate`);
-              data.related = data.related.concat(p.id).slice(-500);
-              save();
-              relateBtn.textContent = `\u{1F91D} I relate · ${p.relates + 1}`;
+              await B.relate(p.id);
             } catch (e) {
               relateBtn.disabled = false;
             }
@@ -652,9 +664,10 @@
         },
         `\u{1F91D} I relate${p.relates ? " · " + p.relates : ""}`
       );
-      const comments = h("div", { class: "comments", hidden: true });
-      const commentList = h("div", null, p.comments.map(commentEl));
+      const comments = h("div", { class: "comments", hidden: !openComments.has(p.id) });
       const cText = h("textarea", { rows: "2", maxlength: String(C.LIMITS.comment), placeholder: "Write something kind…", "aria-label": "Your comment", style: "min-height:60px" });
+      cText.value = drafts[p.id] || "";
+      cText.addEventListener("input", () => (drafts[p.id] = cText.value));
       const cError = h("p", { class: "error", role: "alert" });
       const cSend = h(
         "button",
@@ -664,11 +677,9 @@
             cError.textContent = "";
             cSend.disabled = true;
             try {
-              const { comment } = await api("POST", `api/posts/${p.id}/comments`, { text: cText.value, name: data.name });
-              p.comments.push(comment);
-              commentList.append(commentEl(comment));
+              await B.addComment(p.id, { text: cText.value, name: data.name });
+              drafts[p.id] = "";
               cText.value = "";
-              toggle.textContent = `Comments · ${p.comments.length}`;
             } catch (e) {
               cError.textContent = e.message;
             } finally {
@@ -678,20 +689,33 @@
         },
         "Reply"
       );
-      comments.append(commentList, cText, cError, h("div", { class: "row", style: "margin-top:8px" }, cSend));
+      comments.append(h("div", null, p.comments.map(commentEl)), ...(canAct ? [cText, cError, h("div", { class: "row", style: "margin-top:8px" }, cSend)] : []));
       const toggle = h(
         "button",
         {
           class: "ghost",
           type: "button",
-          onclick: () => (comments.hidden = !comments.hidden),
+          onclick: () => {
+            comments.hidden = !comments.hidden;
+            if (comments.hidden) openComments.delete(p.id);
+            else openComments.add(p.id);
+          },
         },
         p.comments.length ? `Comments · ${p.comments.length}` : "Comment"
       );
-      const card = h(
+      const actionError = h("p", { class: "error", role: "alert" });
+      const act = async (fn) => {
+        actionError.textContent = "";
+        try {
+          await fn();
+        } catch (e) {
+          actionError.textContent = e.message;
+        }
+      };
+      return h(
         "article",
         { class: "card" },
-        h("div", { class: "post-meta" }, `${p.name} · ${C.timeAgo(p.created_at)}`, mine ? " " : "", mine && h("span", { class: "badge" }, "You")),
+        h("div", { class: "post-meta" }, `${p.name} · ${C.timeAgo(p.created_at)}`, p.mine ? " " : "", p.mine && h("span", { class: "badge" }, "You")),
         h("p", { class: "post-text" }, p.text),
         h(
           "div",
@@ -699,48 +723,13 @@
           relateBtn,
           toggle,
           h("span", { style: "flex:1" }),
-          mine
-            ? h(
-                "button",
-                {
-                  class: "link",
-                  type: "button",
-                  onclick: async () => {
-                    if (!confirm("Delete this thought for everyone?")) return;
-                    try {
-                      await api("DELETE", `api/posts/${p.id}`, null, { "X-Owner-Token": data.myPosts[p.id] });
-                      delete data.myPosts[p.id];
-                      save();
-                      card.remove();
-                    } catch (e) {
-                      alert(e.message);
-                    }
-                  },
-                },
-                "Delete"
-              )
-            : h(
-                "button",
-                {
-                  class: "link",
-                  type: "button",
-                  onclick: async (ev) => {
-                    if (!confirm("Report this as unkind or unsafe? Thoughts with several reports are hidden.")) return;
-                    try {
-                      await api("POST", `api/posts/${p.id}/report`);
-                      ev.target.textContent = "Reported";
-                      ev.target.disabled = true;
-                    } catch (e) {
-                      alert(e.message);
-                    }
-                  },
-                },
-                "Report"
-              )
+          p.canDelete
+            ? confirmButton("Delete", "Delete this for everyone?", () => act(() => B.deletePost(p.id)))
+            : canAct && !p.mine && confirmButton("Report", "Report as unkind or unsafe?", () => act(() => B.report(p.id)))
         ),
+        actionError,
         comments
       );
-      return card;
     }
 
     function commentEl(c) {
@@ -748,7 +737,6 @@
     }
 
     setVisibility(visibility);
-    renderTabs();
     mount(
       h("h1", null, "Thoughts"),
       h("p", { class: "muted" }, "Say what's on your mind. Keep it private, or share it anonymously so others know they're not alone."),
@@ -759,7 +747,7 @@
         text,
         h("div", { class: "row spread", style: "margin-top:6px" }, h("div", { class: "seg", role: "group", "aria-label": "Who can see this" }, segPrivate, segShare), charCounter(text, C.LIMITS.thought)),
         nameRow,
-        !server.online && h("p", { class: "small muted", style: "margin-top:8px" }, "Sharing is unavailable right now because the Lantern server can't be reached."),
+        shareNote,
         alerts,
         errorEl,
         h("div", { class: "row", style: "margin-top:12px" }, submit),
@@ -768,7 +756,42 @@
       h("div", { class: "seg", role: "group", "aria-label": "Show", style: "margin-bottom:12px" }, tabEveryone, tabMine),
       list
     );
-    renderList();
+    switchTab(tab);
+    if (status.posts !== "none") {
+      // Typing in an open comment box shouldn't be interrupted by a re-render, so only re-render
+      // the list when focus isn't inside it.
+      let queued = false;
+      const rerender = () => {
+        if (tab !== "everyone") return;
+        if (list.contains(document.activeElement) && document.activeElement.tagName === "TEXTAREA") {
+          if (!queued) {
+            queued = true;
+            document.activeElement.addEventListener(
+              "blur",
+              () => {
+                queued = false;
+                setTimeout(rerender, 150);
+              },
+              { once: true }
+            );
+          }
+          return;
+        }
+        renderList();
+      };
+      const stop = B.subscribePosts(
+        (next) => {
+          posts = next;
+          postsError = "";
+          rerender();
+        },
+        (e) => {
+          postsError = e.message;
+          rerender();
+        }
+      );
+      cleanup = stop;
+    }
   }
 
   // --- create -----------------------------------------------------------------------------
@@ -803,7 +826,7 @@
                 data.notes = [{ id: String(Date.now()), prompt, text: value.slice(0, C.LIMITS.thought), created_at: new Date().toISOString() }].concat(data.notes);
                 save();
                 text.value = "";
-                status.replaceChildren("Saved to your private notes. ", h("a", { href: "#thoughts/mine" }, "See them"));
+                status.replaceChildren("Saved to your private notes. ", h("a", { href: "#notes" }, "See them"));
               },
             },
             "Save to my notes"
@@ -880,12 +903,12 @@
   // --- help -------------------------------------------------------------------------------
 
   const HELPLINES = [
-    { where: "United States", name: "988 Suicide & Crisis Lifeline", how: "Call or text 988", tel: "988" },
-    { where: "Canada", name: "9-8-8 Suicide Crisis Helpline", how: "Call or text 988", tel: "988" },
-    { where: "UK & Ireland", name: "Samaritans", how: "Call 116 123, free, any time", tel: "116123" },
-    { where: "Australia", name: "Lifeline", how: "Call 13 11 14", tel: "131114" },
-    { where: "New Zealand", name: "Need to talk?", how: "Call or text 1737", tel: "1737" },
-    { where: "India", name: "Tele-MANAS", how: "Call 14416", tel: "14416" },
+    { where: "United States", name: "988 Suicide & Crisis Lifeline", how: "call or text", number: "988" },
+    { where: "Canada", name: "9-8-8 Suicide Crisis Helpline", how: "call or text", number: "988" },
+    { where: "UK & Ireland", name: "Samaritans", how: "call free, any time", number: "116 123" },
+    { where: "Australia", name: "Lifeline", how: "call", number: "13 11 14" },
+    { where: "New Zealand", name: "Need to talk?", how: "call or text", number: "1737" },
+    { where: "India", name: "Tele-MANAS", how: "call", number: "14416" },
   ];
 
   function help() {
@@ -905,8 +928,8 @@
         h("p", { class: "muted" }, "Free, confidential support from trained people."),
         h(
           "ul",
-          null,
-          HELPLINES.map((l) => h("li", { style: "margin-bottom:8px" }, h("strong", null, l.where), `: ${l.name}. `, h("a", { href: "tel:" + l.tel }, l.how)))
+          { class: "helplines" },
+          HELPLINES.map((l) => h("li", null, h("strong", null, l.where), h("span", null, `${l.name}, ${l.how}`), h("span", { class: "number" }, l.number)))
         ),
         h(
           "p",
@@ -942,10 +965,10 @@
         { class: "card" },
         h("h3", null, "On this device only"),
         h("p", null, "Your portraits, private notes, mood check-ins and companion conversation are saved in this browser. No account, no email."),
-        h("h3", null, "On the Lantern server"),
-        h("p", null, "Only thoughts and comments you choose to share, with whatever name you type. You can delete your own shared thoughts at any time."),
+        h("h3", null, "Shared with others"),
+        h("p", null, B.privacy.shared),
         h("h3", null, "The AI companion"),
-        h("p", null, "To reply, your conversation is sent to Anthropic's Claude AI. Lantern's server does not store it.")
+        h("p", null, B.privacy.ai)
       ),
       h(
         "section",
@@ -959,49 +982,29 @@
             {
               class: "ghost",
               type: "button",
-              onclick: () => {
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-                const a = h("a", { href: URL.createObjectURL(blob), download: "lantern-my-data.json" });
-                document.body.append(a);
-                a.click();
-                a.remove();
-                setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+              onclick: async () => {
+                status.textContent = "";
+                try {
+                  await B.saveFile("lantern-my-data.json", JSON.stringify(data, null, 2));
+                } catch (e) {
+                  status.textContent = e.message || "The download didn't start.";
+                }
               },
             },
             "Download my data"
           ),
-          h(
-            "button",
-            {
-              class: "ghost",
-              type: "button",
-              style: "border-color:var(--danger);color:var(--danger)",
-              onclick: async () => {
-                if (!confirm("Delete everything Lantern has saved on this device, and your shared thoughts? This can't be undone.")) return;
-                // Keep the owner tokens of any shared thought we couldn't delete, so it can be retried.
-                const remaining = {};
-                for (const id of Object.keys(data.myPosts)) {
-                  try {
-                    await api("DELETE", `api/posts/${id}`, null, { "X-Owner-Token": data.myPosts[id] });
-                  } catch (e) {
-                    if (e.status !== 404) remaining[id] = data.myPosts[id];
-                  }
-                }
-                const failed = Object.keys(remaining).length;
-                data = blank();
-                data.myPosts = remaining;
-                if (failed) save();
-                else {
-                  try {
-                    localStorage.removeItem(KEY);
-                  } catch (e) {}
-                }
-                status.textContent = failed
-                  ? `Your device data is deleted. ${failed} shared thought(s) couldn't be removed because the server wasn't reachable.`
-                  : "Everything is deleted.";
-              },
+          confirmButton(
+            "Delete everything",
+            "Delete everything on this device, and your shared thoughts? This can't be undone.",
+            async () => {
+              const failed = await B.deleteAllMine().catch(() => 1);
+              data = blank();
+              try {
+                localStorage.removeItem(KEY);
+              } catch (e) {}
+              status.textContent = failed ? "Your device data is deleted. Some shared thoughts couldn't be removed; try again later." : "Everything is deleted.";
             },
-            "Delete everything"
+            "ghost danger-outline"
           )
         ),
         status

@@ -51,6 +51,19 @@ Without `ANTHROPIC_API_KEY`, everything works except that the companion runs in 
 
 The companion uses `claude-opus-5-5` at low effort, with server-side refusal fallbacks enabled.
 
+## Shareable version (claude.ai Artifact)
+
+Lantern is also published as a claude.ai Artifact, so it can be shared as a link without running a server:
+https://claude.ai/artifact/LryCqtUS5mZBvvNuuwgDd2 (private until shared from its Share menu).
+
+`node build-artifact.js` combines the page, styles, `public/core.js`, `public/app.js` and `artifact/backend-artifact.js` into `artifact/lantern.html`, which is what gets published. In that version:
+
+- Shared thoughts live in the Artifact's database. Signed-in viewers can read them; writing needs Contributor access or higher (on a personal plan, the owner and invited editors).
+- The companion runs on each viewer's own Claude account and asks their permission first. Viewers who aren't signed in get offline mode.
+- Everything personal still stays in the viewer's browser.
+
+The UI talks only to `window.LanternBackend`, so the server (`public/backend-server.js`) and Artifact (`artifact/backend-artifact.js`) versions share all the same pages.
+
 ## Tests
 
 From the repository root:
@@ -66,6 +79,8 @@ node --test tests/lantern.test.js  # just Lantern
 | --- | --- |
 | `public/core.js` | Questions, portrait logic, crisis detection and validation (shared by browser and server) |
 | `public/app.js` | The single-page UI |
+| `public/backend-server.js`, `artifact/backend-artifact.js` | Data and AI access for the server and Artifact versions |
+| `build-artifact.js` | Builds the single-file Artifact version |
 | `public/index.html`, `public/styles.css` | Layout and styles (light and dark mode, phone first) |
 | `store.js` | Shared thoughts and comments, saved to a JSON file |
 | `server.js` | Static files, the thoughts API and the companion endpoint |
