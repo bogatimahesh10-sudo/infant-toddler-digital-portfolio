@@ -1,0 +1,180 @@
+name: Mobile builds
+
+on:
+  push:
+    paths: ["pace/**", "mobile/**", "tests/**", ".github/workflows/mobile.yml"]
+  workflow_dispatch:
+    inputs:
+      release_ios:
+        description: "Sign and upload the iOS app to App Store Connect (needs the App Store secrets)"
+        type: boolean
+        default: false
+      version:
+        description: "Version shown in the App Store, e.g. 1.0.0"
+        type: string
+        default: "1.0.0"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PACE_VERSION_CODE: ${{ github.run_number }}
+      HAS_UPLOAD_KEY: ${{ secrets.PACE_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # The ubuntu-latest image ships the Android SDK (ANDROID_HOME); Gradle fetches any missing platform.
+      - name: Check Android SDK
+        run: echo "ANDROID_HOME=$ANDROID_HOME" && ls "$ANDROID_HOME"
+
+      - name: Unit tests for the money rules
+        run: node --test
+
+      - name: Build the web bundle and sync it into the Android project
+        working-directory: mobile
+        run: |
+          npm ci
+          npm run sync
+
+      - name: Build debug APK (installable on any Android phone)
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Decode upload key
+        if: env.HAS_UPLOAD_KEY == 'true'
+        run: echo "${{ secrets.PACE_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/pace-upload.jks"
+
+      - name: Build signed release bundle for Google Play
+        if: env.HAS_UPLOAD_KEY == 'true'
+        working-directory: mobile/android
+        env:
+          PACE_KEYSTORE: ${{ runner.temp }}/pace-upload.jks
+          PACE_KEYSTORE_PASSWORD: ${{ secrets.PACE_KEYSTORE_PASSWORD }}
+          PACE_KEY_ALIAS: ${{ secrets.PACE_KEY_ALIAS }}
+          PACE_KEY_PASSWORD: ${{ secrets.PACE_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pace-debug-apk
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        if: env.HAS_UPLOAD_KEY == 'true'
+        with:
+          name: pace-release-aab
+          path: mobile/android/app/build/outputs/bundle/release/app-release.aab
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Build the web bundle and sync it into the iOS project
+        working-directory: mobile
+        run: |
+          npm ci
+          npm run sync:ios
+
+      # Compiles for the simulator without signing. This proves the iOS project builds;
+      # App Store uploads need an Apple Developer account (see mobile/README.md).
+      - name: Build for iOS Simulator
+        working-directory: mobile/ios/App
+        run: |
+          xcodebuild -project App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 40
+          exit ${PIPESTATUS[0]}
+
+  ios-release:
+    if: github.event_name == 'workflow_dispatch' && inputs.release_ios
+    runs-on: macos-latest
+    env:
+      ASC_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+      ASC_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - name: Check App Store secrets
+        run: |
+          for v in ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY APPLE_TEAM_ID; do
+            if [ -z "${!v}" ]; then echo "::error::Secret for $v is missing. See 'Release to the App Store from GitHub' in mobile/README.md."; exit 1; fi
+          done
+
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Build the web bundle and sync it into the iOS project
+        working-directory: mobile
+        run: |
+          npm ci
+          npm run sync:ios
+
+      - name: Write the App Store Connect API key
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s\n' "$ASC_PRIVATE_KEY" > "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8"
+
+      # Xcode creates and manages the distribution certificate and profile through the API key
+      # (cloud-managed signing), so no certificate files are kept in the repo or in secrets.
+      - name: Archive
+        working-directory: mobile/ios/App
+        run: |
+          set -o pipefail
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Pace.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" MARKETING_VERSION="${{ inputs.version }}" \
+            archive | tail -n 80
+
+      - name: Upload to App Store Connect
+        run: |
+          set -o pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Pace.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" | tail -n 40
+          echo "Uploaded build ${{ github.run_number }} (version ${{ inputs.version }}). It appears in App Store Connect → TestFlight after Apple finishes processing, usually 10–30 minutes."
+
+      - name: Remove the API key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"

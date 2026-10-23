@@ -1,5 +1,7 @@
 # Budget
 
+> **Pace prototype:** see [`pace/README.md`](pace/README.md). The rest of this README covers the original simple budget app.
+
 A simple personal budget app that runs entirely in your browser. No accounts, no server, and no dependencies.
 
 ## Features

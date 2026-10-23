@@ -1,0 +1,14 @@
+{
+  "appId": "com.bogatimahesh.pace",
+  "appName": "Pace",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "native"
+    }
+  }
+}
